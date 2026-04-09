@@ -134,6 +134,31 @@
     .alert-pct.warn{color:var(--warn)}
     .empty-alert{padding:24px;text-align:center;color:var(--muted);font-size:0.82rem}
 
+    /* EDIT MODAL */
+    .edit-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:400;opacity:0;pointer-events:none;transition:opacity .25s}
+    .edit-overlay.open{opacity:1;pointer-events:all}
+    .edit-sheet{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-radius:22px 22px 0 0;z-index:401;padding:20px 16px 40px;transform:translateY(100%);transition:transform .3s ease}
+    .edit-sheet.open{transform:translateY(0)}
+    .edit-handle{width:40px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 16px}
+    .edit-title{font-size:0.95rem;font-weight:700;color:var(--heading);margin-bottom:14px}
+    .edit-field{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+    .edit-label{font-size:0.78rem;color:var(--muted);width:52px;flex-shrink:0}
+    .edit-input{flex:1;border:1px solid var(--border);outline:none;font-family:'Noto Sans KR',sans-serif;font-size:0.88rem;color:var(--body);background:var(--subtle);border-radius:8px;padding:9px 11px}
+    .edit-input:focus{border-color:var(--accent)}
+    .edit-sel{border:1px solid var(--border);outline:none;font-family:'Noto Sans KR',sans-serif;font-size:0.85rem;color:var(--body);background:var(--subtle);border-radius:8px;padding:9px 8px;cursor:pointer}
+    .edit-save{width:100%;padding:12px;border:none;border-radius:12px;background:var(--accent);color:#fff;font-family:'Noto Sans KR',sans-serif;font-size:0.9rem;font-weight:700;cursor:pointer;margin-top:4px}
+    .edit-save:active{background:var(--accent-dark)}
+
+    /* STOCK ITEM ROW */
+    .stock-row{display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--subtle)}
+    .stock-row:last-child{border-bottom:none}
+    .stock-name{flex:1;font-size:0.88rem;color:var(--heading)}
+    .stock-qty{font-family:'DM Mono',monospace;font-size:0.82rem;color:var(--accent-dark);background:var(--accent-bg);border-radius:8px;padding:3px 9px;white-space:nowrap}
+    .stock-edit{width:28px;height:28px;border-radius:50%;border:1.5px solid var(--border);background:var(--surface);color:var(--muted);font-size:0.8rem;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+    .stock-edit:active{background:var(--subtle)}
+    .stock-del{width:28px;height:28px;border-radius:50%;border:none;background:transparent;color:var(--muted);font-size:0.82rem;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+    .stock-del:active{background:var(--subtle)}
+
     /* TOAST */
     #toast{position:fixed;bottom:20px;right:16px;background:var(--accent-dark);color:#fff;font-size:0.75rem;padding:7px 14px;border-radius:20px;opacity:0;transition:opacity .3s;z-index:999;pointer-events:none;font-family:'DM Mono',monospace}
   </style>
@@ -172,6 +197,7 @@
 <!-- TAB BAR -->
 <div class="tab-bar">
   <button class="tab-btn active" data-tab="inbound">📥 입고</button>
+  <button class="tab-btn" data-tab="stock">📦 재고</button>
   <button class="tab-btn" data-tab="outbound">📤 출고</button>
   <button class="tab-btn" data-tab="order">🛒 주문요망<span class="tab-badge warn" id="badge-order" style="display:none"></span></button>
   <button class="tab-btn" data-tab="urgent">🚨 Urgent<span class="tab-badge" id="badge-urgent" style="display:none"></span></button>
@@ -179,6 +205,9 @@
 
 <!-- INBOUND TAB -->
 <div class="tab-view active" id="tab-inbound"></div>
+
+<!-- STOCK TAB -->
+<div class="tab-view" id="tab-stock"></div>
 
 <!-- OUTBOUND TAB -->
 <div class="tab-view" id="tab-outbound"></div>
@@ -285,6 +314,7 @@ function initFirestore() {
 
 function renderAll() {
   renderInbound();
+  renderStock();
   renderOutbound();
   renderOrderUrgent();
 }
@@ -294,58 +324,24 @@ function renderInbound() {
   const view = document.getElementById('tab-inbound');
   view.innerHTML = '';
   SECTIONS.forEach(sec => {
-    const items = cache[sec.id];
     const card = document.createElement('div');
     card.className = 'section-card';
-    card.id = `in-card-${sec.id}`;
 
-    // header
     const hdr = document.createElement('div');
     hdr.className = 'section-header';
     hdr.innerHTML = `
       <div class="section-title-row">
         <div class="section-icon">${sec.icon}</div>
         <span class="section-name">${sec.label}</span>
-        <span class="section-badge">${items.length}</span>
       </div>
       <span class="chevron">▾</span>
     `;
     hdr.addEventListener('click', () => card.classList.toggle('collapsed'));
     card.appendChild(hdr);
 
-    // list
-    const list = document.createElement('div');
-    list.className = 'item-list';
-    if (!items.length) {
-      list.innerHTML = `<div class="empty-row">항목이 없어요</div>`;
-    } else {
-      items.forEach(item => {
-        const row = document.createElement('div');
-        row.className = 'item-row';
-        row.innerHTML = `
-          <div class="item-info">
-            <div class="item-name">${item.name}</div>
-            <div class="item-meta">
-              <span>${item.qty} ${item.unit}</span>
-              <span>입고: ${fmtDate(item.createdAt)}</span>
-              ${item.addedBy ? `<span>${item.addedBy}</span>` : ''}
-            </div>
-          </div>
-          <span class="item-qty">${item.remaining ?? item.qty} ${item.unit}</span>
-          <button class="del-btn">✕</button>
-        `;
-        row.querySelector('.del-btn').addEventListener('click', async () => {
-          row.style.opacity='0'; row.style.transition='opacity .2s';
-          setTimeout(() => deleteDoc(doc(db,`inv_${sec.id}`,item.id)), 200);
-        });
-        list.appendChild(row);
-      });
-    }
-    card.appendChild(list);
-
-    // add row
     const addRow = document.createElement('div');
     addRow.className = 'add-row';
+    addRow.style.borderTop = 'none';
     addRow.innerHTML = `
       <div class="add-row-line">
         <input class="add-input" placeholder="품목명" maxlength="30"/>
@@ -382,6 +378,88 @@ async function addItem(secId, addRow) {
   });
   showToast('입고됨 ✓');
 }
+
+// ── STOCK ─────────────────────────────────────────────
+let editingItem = null;
+let editingSecId = null;
+
+function renderStock() {
+  const view = document.getElementById('tab-stock');
+  view.innerHTML = '';
+  let hasAny = false;
+  SECTIONS.forEach(sec => {
+    const items = [...cache[sec.id]].sort((a,b)=>a.name.localeCompare(b.name,'ko'));
+    if (!items.length) return;
+    hasAny = true;
+    const card = document.createElement('div');
+    card.className = 'section-card';
+
+    const hdr = document.createElement('div');
+    hdr.className = 'section-header';
+    hdr.innerHTML = `
+      <div class="section-title-row">
+        <div class="section-icon">${sec.icon}</div>
+        <span class="section-name">${sec.label}</span>
+        <span class="section-badge">${items.length}</span>
+      </div>
+      <span class="chevron">▾</span>
+    `;
+    hdr.addEventListener('click', () => card.classList.toggle('collapsed'));
+    card.appendChild(hdr);
+
+    const list = document.createElement('div');
+    list.className = 'item-list';
+    items.forEach(item => {
+      const row = document.createElement('div');
+      row.className = 'stock-row';
+      row.innerHTML = `
+        <span class="stock-name">${item.name}</span>
+        <span class="stock-qty">${item.remaining ?? item.qty} ${item.unit}</span>
+        <button class="stock-edit" title="수정">✏️</button>
+        <button class="stock-del" title="삭제">✕</button>
+      `;
+      row.querySelector('.stock-edit').addEventListener('click', () => openEdit(sec.id, item));
+      row.querySelector('.stock-del').addEventListener('click', async () => {
+        row.style.opacity='0'; row.style.transition='opacity .2s';
+        setTimeout(() => deleteDoc(doc(db,`inv_${sec.id}`,item.id)), 200);
+      });
+      list.appendChild(row);
+    });
+    card.appendChild(list);
+    view.appendChild(card);
+  });
+  if (!hasAny) {
+    view.innerHTML = '<div style="padding:32px;text-align:center;color:var(--muted);font-size:0.85rem">입고된 항목이 없어요</div>';
+  }
+}
+
+function openEdit(secId, item) {
+  editingSecId = secId;
+  editingItem  = item;
+  document.getElementById('edit-name').value = item.name;
+  document.getElementById('edit-qty').value  = item.remaining ?? item.qty;
+  document.getElementById('edit-unit').value = item.unit;
+  document.getElementById('edit-overlay').classList.add('open');
+  document.getElementById('edit-sheet').classList.add('open');
+}
+function closeEdit() {
+  document.getElementById('edit-overlay').classList.remove('open');
+  document.getElementById('edit-sheet').classList.remove('open');
+  editingItem = null; editingSecId = null;
+}
+document.getElementById('edit-overlay').addEventListener('click', closeEdit);
+document.getElementById('edit-save').addEventListener('click', async () => {
+  if (!editingItem || !editingSecId) return;
+  const name = document.getElementById('edit-name').value.trim();
+  const qty  = parseFloat(document.getElementById('edit-qty').value);
+  const unit = document.getElementById('edit-unit').value;
+  if (!name || isNaN(qty)) { showToast('입력값을 확인하세요'); return; }
+  await updateDoc(doc(db, `inv_${editingSecId}`, editingItem.id), {
+    name, remaining: qty, unit
+  });
+  showToast('수정됨 ✓');
+  closeEdit();
+});
 
 // ── OUTBOUND ──────────────────────────────────────────
 function renderOutbound() {
@@ -545,6 +623,26 @@ function groupBySection(items) {
   return SECTIONS.map(s=>map[s.id]).filter(g=>g.items.length>0);
 }
 </script>
+
+<div class="edit-overlay" id="edit-overlay"></div>
+<div class="edit-sheet" id="edit-sheet">
+  <div class="edit-handle"></div>
+  <div class="edit-title">재고 수정</div>
+  <div class="edit-field">
+    <span class="edit-label">품목명</span>
+    <input class="edit-input" id="edit-name" maxlength="30"/>
+  </div>
+  <div class="edit-field">
+    <span class="edit-label">수량</span>
+    <input class="edit-input" id="edit-qty" type="number" min="0" step="any" style="width:80px;flex:none"/>
+    <select class="edit-sel" id="edit-unit">
+      <option>개</option><option>box</option><option>bag</option>
+      <option>lb</option><option>oz</option><option>Kg</option><option>g</option>
+      <option>l</option><option>ml</option><option>bottle</option><option>can</option><option>pack</option>
+    </select>
+  </div>
+  <button class="edit-save" id="edit-save">저장하기</button>
+</div>
 
 <script>
 if ("serviceWorker" in navigator) {
