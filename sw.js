@@ -1,4 +1,4 @@
-const CACHE_NAME = 'banchan-v3';
+const CACHE_NAME = 'banchan-v4';
 const ASSETS = [
   '/app/index.html',
   '/app/main.html',
