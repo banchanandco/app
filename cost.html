@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>원가계산 — Banchan and Co</title>
+  <link rel="manifest" href="manifest.json"/>
+  <meta name="theme-color" content="#9caf88"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="default"/>
+  <meta name="apple-mobile-web-app-title" content="Banchan"/>
+  <link rel="apple-touch-icon" href="icons/icon-192.png"/>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{--accent:#9caf88;--accent-dark:#7a9068;--accent-bg:#f0f5ec;--accent-light:#c8d9bc;--bg:#f5f4f0;--surface:#fff;--border:#dedad3;--subtle:#eceae5;--muted:#9a9488;--body:#4a4540;--heading:#2a2520;--brown:#5c3d2e}
+    body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--body);min-height:100vh;padding-bottom:60px}
+
+    /* LOCK */
+    #lock-screen{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;z-index:1000;padding:32px}
+    #lock-screen .lock-icon{font-size:3rem}
+    #lock-screen h2{font-size:1.2rem;font-weight:700;color:var(--heading)}
+    #lock-screen p{font-size:0.85rem;color:var(--muted)}
+    .pin-display{display:flex;gap:12px;margin:8px 0}
+    .pin-dot{width:14px;height:14px;border-radius:50%;border:2px solid var(--border);background:transparent;transition:background .15s}
+    .pin-dot.filled{background:var(--accent);border-color:var(--accent)}
+    .pin-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;width:240px}
+    .pin-btn{height:60px;border-radius:14px;border:1.5px solid var(--border);background:var(--surface);font-family:'Noto Sans KR',sans-serif;font-size:1.2rem;font-weight:600;color:var(--heading);cursor:pointer;transition:background .15s}
+    .pin-btn:active{background:var(--accent-bg)}
+    .pin-del{font-size:1rem;color:var(--muted)}
+    .pin-error{font-size:0.82rem;color:#c0392b;min-height:20px}
+
+    /* HEADER */
+    header{background:var(--accent);color:#fff;padding:14px 16px;position:sticky;top:0;z-index:200;display:flex;align-items:center;justify-content:space-between}
+    .header-left{display:flex;align-items:center;gap:10px}
+    .back-btn{background:none;border:none;color:#fff;font-size:1.3rem;cursor:pointer;line-height:1}
+    header h1{font-size:1.05rem;font-weight:700}
+
+    /* CONTENT */
+    .content{padding:16px;display:flex;flex-direction:column;gap:14px}
+
+    /* ADD CARD */
+    .add-card{background:var(--surface);border-radius:16px;border:1px solid var(--border);padding:16px;display:flex;flex-direction:column;gap:12px}
+    .add-card h3{font-size:0.88rem;font-weight:700;color:var(--heading)}
+    .field-row{display:flex;gap:8px;align-items:center}
+    .field-label{font-size:0.78rem;color:var(--muted);width:56px;flex-shrink:0}
+    .field-input{flex:1;border:1px solid var(--border);outline:none;font-family:'Noto Sans KR',sans-serif;font-size:0.88rem;color:var(--body);background:var(--subtle);border-radius:8px;padding:9px 12px}
+    .field-input:focus{border-color:var(--accent)}
+    .field-unit{font-size:0.78rem;color:var(--muted);white-space:nowrap}
+    .add-row{display:flex;gap:8px}
+    .unit-select{flex:1;border:1px solid var(--border);outline:none;font-family:'Noto Sans KR',sans-serif;font-size:0.85rem;color:var(--body);background:var(--subtle);border-radius:8px;padding:9px 10px;cursor:pointer}
+    .add-main-btn{flex:2;padding:11px;border:none;border-radius:10px;background:var(--accent);color:#fff;font-family:'Noto Sans KR',sans-serif;font-size:0.88rem;font-weight:600;cursor:pointer}
+    .add-main-btn:active{background:var(--accent-dark)}
+
+    /* INGREDIENT LIST */
+    .ing-card{background:var(--surface);border-radius:16px;border:1px solid var(--border);overflow:hidden}
+    .ing-card-header{padding:12px 16px;border-bottom:1px solid var(--subtle);font-size:0.82rem;font-weight:700;color:var(--heading);display:flex;align-items:center;justify-content:space-between}
+    .search-input{flex:1;border:1px solid var(--border);outline:none;font-family:'Noto Sans KR',sans-serif;font-size:0.82rem;color:var(--body);background:var(--subtle);border-radius:8px;padding:7px 10px;margin-left:10px}
+    .search-input:focus{border-color:var(--accent)}
+    .ing-row{display:grid;grid-template-columns:1fr auto;gap:8px;padding:11px 16px;border-bottom:1px solid var(--subtle);align-items:start}
+    .ing-row:last-child{border-bottom:none}
+    .ing-name{font-size:0.88rem;font-weight:600;color:var(--heading)}
+    .ing-info{font-size:0.72rem;color:var(--muted);margin-top:2px}
+    .ing-costs{display:flex;flex-direction:column;gap:3px;align-items:flex-end}
+    .cost-chip{font-size:0.68rem;font-family:'DM Mono',monospace;background:var(--accent-bg);color:var(--accent-dark);border-radius:6px;padding:2px 6px;white-space:nowrap}
+    .ing-actions{display:flex;gap:6px;margin-top:6px;justify-content:flex-end}
+    .ing-del{font-size:0.72rem;color:var(--muted);background:none;border:none;cursor:pointer;padding:2px 6px}
+    .ing-del:active{color:#c0392b}
+    .ing-edit-btn{font-size:0.72rem;color:var(--accent-dark);background:none;border:none;cursor:pointer;padding:2px 6px}
+    .ing-edit-btn:active{color:var(--accent)}
+    .empty-list{padding:24px 16px;text-align:center;color:var(--muted);font-size:0.82rem}
+
+    /* EDIT MODAL */
+    .edit-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:400;opacity:0;pointer-events:none;transition:opacity .25s}
+    .edit-overlay.open{opacity:1;pointer-events:all}
+    .edit-modal{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-radius:22px 22px 0 0;z-index:401;padding:20px 16px 40px;transform:translateY(100%);transition:transform .3s ease}
+    .edit-modal.open{transform:translateY(0)}
+    .edit-handle{width:40px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 16px}
+    .edit-title{font-size:1rem;font-weight:700;color:var(--heading);margin-bottom:16px}
+    .edit-save-btn{width:100%;padding:12px;border:none;border-radius:10px;background:var(--accent);color:#fff;font-family:'Noto Sans KR',sans-serif;font-size:0.9rem;font-weight:700;cursor:pointer;margin-top:12px}
+    .edit-save-btn:active{background:var(--accent-dark)}
+
+    #toast{position:fixed;bottom:20px;right:16px;background:var(--accent-dark);color:#fff;font-size:0.75rem;padding:7px 14px;border-radius:20px;opacity:0;transition:opacity .3s;z-index:999;pointer-events:none}
+  </style>
+</head>
+<body>
+
+<!-- LOCK -->
+<div id="lock-screen">
+  <div class="lock-icon">🔒</div>
+  <h2>원가계산</h2>
+  <p>PIN을 입력하세요</p>
+  <div class="pin-display" id="pin-display">
+    <div class="pin-dot" id="d0"></div>
+    <div class="pin-dot" id="d1"></div>
+    <div class="pin-dot" id="d2"></div>
+    <div class="pin-dot" id="d3"></div>
+  </div>
+  <p class="pin-error" id="pin-error"></p>
+  <div class="pin-grid">
+    <button class="pin-btn" data-n="1">1</button>
+    <button class="pin-btn" data-n="2">2</button>
+    <button class="pin-btn" data-n="3">3</button>
+    <button class="pin-btn" data-n="4">4</button>
+    <button class="pin-btn" data-n="5">5</button>
+    <button class="pin-btn" data-n="6">6</button>
+    <button class="pin-btn" data-n="7">7</button>
+    <button class="pin-btn" data-n="8">8</button>
+    <button class="pin-btn" data-n="9">9</button>
+    <button class="pin-btn" data-n="del" style="grid-column:1">⌫</button>
+    <button class="pin-btn" data-n="0">0</button>
+    <div></div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app" style="display:none">
+  <header>
+    <div class="header-left">
+      <button class="back-btn" onclick="history.back()">‹</button>
+      <h1>🧮 원가계산</h1>
+    </div>
+    <button style="background:none;border:none;color:rgba(255,255,255,0.7);font-size:0.75rem;cursor:pointer" onclick="lockApp()">잠금</button>
+  </header>
+
+  <div class="content">
+    <!-- ADD -->
+    <div class="add-card">
+      <h3>식재료 추가</h3>
+      <div class="field-row">
+        <span class="field-label">재료명</span>
+        <input class="field-input" id="ing-name" placeholder="예: 닭가슴살" maxlength="30"/>
+      </div>
+      <div class="field-row">
+        <span class="field-label">구입가격</span>
+        <span class="field-unit">$</span>
+        <input class="field-input" id="ing-price" type="number" placeholder="0.00" min="0" step="0.01"/>
+      </div>
+      <div class="field-row">
+        <span class="field-label">총 용량</span>
+        <input class="field-input" id="ing-amount" type="number" placeholder="0" min="0"/>
+        <select class="unit-select" id="ing-unit" style="width:90px;flex:none">
+          <option value="cup">cup</option>
+          <option value="tbsp">tbsp</option>
+          <option value="tsp">tsp</option>
+          <option value="Kg">Kg</option>
+          <option value="g">g</option>
+          <option value="l">l</option>
+          <option value="ml">ml</option>
+          <option value="lb">lb</option>
+          <option value="oz">oz</option>
+          <option value="개">개</option>
+        </select>
+      </div>
+      <div class="field-row" id="density-row" style="display:none">
+        <span class="field-label">밀도</span>
+        <input class="field-input" id="ing-density" type="number" placeholder="1.0" step="0.1" min="0.1"/>
+        <span class="field-unit">g/ml</span>
+      </div>
+      <button class="add-main-btn" id="add-ing-btn">추가하기</button>
+    </div>
+
+    <!-- LIST -->
+    <div class="ing-card">
+      <div class="ing-card-header">
+        <span>식재료 목록</span>
+        <input class="search-input" id="search-input" placeholder="검색..."/>
+      </div>
+      <div id="ing-list"><div class="empty-list">추가된 식재료가 없어요</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT MODAL -->
+<div class="edit-overlay" id="edit-overlay"></div>
+<div class="edit-modal" id="edit-modal">
+  <div class="edit-handle"></div>
+  <div class="edit-title">식재료 수정</div>
+  <div class="field-row">
+    <span class="field-label">재료명</span>
+    <input class="field-input" id="edit-name" placeholder="재료명" maxlength="30"/>
+  </div>
+  <div class="field-row" style="margin-top:10px">
+    <span class="field-label">구입가격</span>
+    <span class="field-unit">$</span>
+    <input class="field-input" id="edit-price" type="number" placeholder="0.00" min="0" step="0.01"/>
+  </div>
+  <div class="field-row" style="margin-top:10px">
+    <span class="field-label">총 용량</span>
+    <input class="field-input" id="edit-amount" type="number" placeholder="0" min="0"/>
+    <select class="unit-select" id="edit-unit" style="width:90px;flex:none">
+      <option value="cup">cup</option>
+      <option value="tbsp">tbsp</option>
+      <option value="tsp">tsp</option>
+      <option value="Kg">Kg</option>
+      <option value="g">g</option>
+      <option value="l">l</option>
+      <option value="ml">ml</option>
+      <option value="lb">lb</option>
+      <option value="oz">oz</option>
+      <option value="개">개</option>
+    </select>
+  </div>
+  <div class="field-row" id="edit-density-row" style="display:none;margin-top:10px">
+    <span class="field-label">밀도</span>
+    <input class="field-input" id="edit-density" type="number" placeholder="1.0" step="0.1" min="0.1"/>
+    <span class="field-unit">g/ml</span>
+  </div>
+  <button class="edit-save-btn" id="edit-save-btn">저장하기</button>
+</div>
+
+<div id="toast"></div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getFirestore, collection, onSnapshot, addDoc, deleteDoc, updateDoc, doc, orderBy, query }
+    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+  const db = getFirestore(initializeApp({apiKey:"AIzaSyArW3yhj81OJpOkCEYfyaelgcdo8o_IAPw",authDomain:"banchan-inventory-144bd.firebaseapp.com",projectId:"banchan-inventory-144bd",storageBucket:"banchan-inventory-144bd.firebasestorage.app",messagingSenderId:"1022526862273",appId:"1:1022526862273:web:12a025d9db24c7c6b83540"}));
+
+  const PIN = '5896';
+  let pinBuf = '';
+  let ingredients = [];
+
+  // ── PIN ─────────────────────────────────────────────
+  function updateDots() {
+    for (let i=0;i<4;i++) document.getElementById(`d${i}`).classList.toggle('filled', i < pinBuf.length);
+  }
+  document.querySelectorAll('.pin-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const n = btn.dataset.n;
+      if (n === 'del') { pinBuf = pinBuf.slice(0,-1); }
+      else if (pinBuf.length < 4) { pinBuf += n; }
+      updateDots();
+      if (pinBuf.length === 4) {
+        if (pinBuf === PIN) {
+          sessionStorage.setItem('cost_auth','1');
+          document.getElementById('lock-screen').style.display='none';
+          document.getElementById('app').style.display='block';
+        } else {
+          document.getElementById('pin-error').textContent = '잘못된 PIN이에요';
+          pinBuf = '';
+          updateDots();
+          setTimeout(()=>document.getElementById('pin-error').textContent='',1500);
+        }
+      }
+    });
+  });
+  if (sessionStorage.getItem('cost_auth')==='1') {
+    document.getElementById('lock-screen').style.display='none';
+    document.getElementById('app').style.display='block';
+  }
+  window.lockApp = () => { sessionStorage.removeItem('cost_auth'); location.reload(); };
+
+  // ── Toast ────────────────────────────────────────────
+  function showToast(msg){const el=document.getElementById('toast');el.textContent=msg;el.style.opacity='1';clearTimeout(el._t);el._t=setTimeout(()=>el.style.opacity='0',2000);}
+
+  const VOL_UNITS = ['cup','tbsp','tsp','l','ml'];
+
+  document.getElementById('ing-unit').addEventListener('change', function(){
+    document.getElementById('density-row').style.display = VOL_UNITS.includes(this.value) ? 'flex' : 'none';
+  });
+
+  // ── Cost calc ────────────────────────────────────────
+  function toGrams(amount, unit) {
+    const map = { g:1, Kg:1000, lb:453.592, oz:28.3495 };
+    return amount * (map[unit]||1);
+  }
+  function toMl(amount, unit) {
+    const map = { ml:1, l:1000, cup:240, tbsp:15, tsp:5 };
+    return amount * (map[unit]||1);
+  }
+
+  function calcCosts(price, amount, unit, density=1) {
+    if (!price || !amount) return [];
+    const costs = [];
+    const weightUnits = ['g','Kg','lb','oz'];
+    const volUnits    = ['cup','tbsp','tsp','l','ml'];
+
+    if (weightUnits.includes(unit)) {
+      const totalG = toGrams(amount, unit);
+      const pPerG  = price / totalG;
+      const pPerMl = pPerG / density;
+      costs.push({ label:'1 cup', val: pPerMl * 240 });
+      costs.push({ label:'1 tbsp',val: pPerMl * 15 });
+      costs.push({ label:'1 tsp', val: pPerMl * 5 });
+      costs.push({ label:'1 Kg',  val: pPerG * 1000 });
+      costs.push({ label:'1 g',   val: pPerG });
+      costs.push({ label:'1 l',   val: pPerMl * 1000 });
+      costs.push({ label:'1 ml',  val: pPerMl });
+      costs.push({ label:'1 lb',  val: pPerG * 453.592 });
+      costs.push({ label:'1 oz',  val: pPerG * 28.3495 });
+    } else if (volUnits.includes(unit)) {
+      const totalMl = toMl(amount, unit);
+      const pPerMl  = price / totalMl;
+      const pPerG   = pPerMl * density;
+      costs.push({ label:'1 cup', val: pPerMl * 240 });
+      costs.push({ label:'1 tbsp',val: pPerMl * 15 });
+      costs.push({ label:'1 tsp', val: pPerMl * 5 });
+      costs.push({ label:'1 Kg',  val: pPerG * 1000 });
+      costs.push({ label:'1 g',   val: pPerG });
+      costs.push({ label:'1 l',   val: pPerMl * 1000 });
+      costs.push({ label:'1 ml',  val: pPerMl });
+      costs.push({ label:'1 lb',  val: pPerG * 453.592 });
+      costs.push({ label:'1 oz',  val: pPerG * 28.3495 });
+    } else if (unit === '개') {
+      costs.push({ label:'1개', val: price / amount });
+    }
+    return costs;
+  }
+
+  function fmt(n) {
+    if (n < 0.01) return '$' + n.toFixed(4);
+    if (n < 1)    return '$' + n.toFixed(3);
+    return '$' + n.toFixed(2);
+  }
+
+  // ── Firestore ────────────────────────────────────────
+  const q = query(collection(db,'cost_ingredients'), orderBy('name'));
+  onSnapshot(q, snap => {
+    ingredients = snap.docs.map(d=>({id:d.id,...d.data()}));
+    renderList(document.getElementById('search-input').value);
+  });
+
+  async function addIngredient() {
+    const name    = document.getElementById('ing-name').value.trim();
+    const price   = parseFloat(document.getElementById('ing-price').value);
+    const amount  = parseFloat(document.getElementById('ing-amount').value);
+    const unit    = document.getElementById('ing-unit').value;
+    const density = parseFloat(document.getElementById('ing-density').value)||1;
+    if (!name || !price || !amount) { showToast('모든 항목을 입력하세요'); return; }
+    await addDoc(collection(db,'cost_ingredients'),{name,price,amount,unit,density,createdAt:Date.now()});
+    document.getElementById('ing-name').value='';
+    document.getElementById('ing-price').value='';
+    document.getElementById('ing-amount').value='';
+    showToast('추가됨 ✓');
+  }
+
+  document.getElementById('add-ing-btn').addEventListener('click', addIngredient);
+  document.getElementById('ing-name').addEventListener('keydown', e=>{ if(e.key==='Enter') addIngredient(); });
+
+  // ── Edit modal ───────────────────────────────────────
+  let editingId = null;
+
+  function openEdit(ing) {
+    editingId = ing.id;
+    document.getElementById('edit-name').value   = ing.name;
+    document.getElementById('edit-price').value  = ing.price;
+    document.getElementById('edit-amount').value = ing.amount;
+    document.getElementById('edit-unit').value   = ing.unit;
+    document.getElementById('edit-density').value= ing.density||1;
+    const isVol = ing.unit==='l'||ing.unit==='ml';
+    document.getElementById('edit-density-row').style.display = isVol?'flex':'none';
+    document.getElementById('edit-overlay').classList.add('open');
+    document.getElementById('edit-modal').classList.add('open');
+  }
+  function closeEdit() {
+    editingId = null;
+    document.getElementById('edit-overlay').classList.remove('open');
+    document.getElementById('edit-modal').classList.remove('open');
+  }
+  document.getElementById('edit-overlay').addEventListener('click', closeEdit);
+  document.getElementById('edit-unit').addEventListener('change', function(){
+    document.getElementById('edit-density-row').style.display = VOL_UNITS.includes(this.value)?'flex':'none';
+  });
+  document.getElementById('edit-save-btn').addEventListener('click', async()=>{
+    if (!editingId) return;
+    const name    = document.getElementById('edit-name').value.trim();
+    const price   = parseFloat(document.getElementById('edit-price').value);
+    const amount  = parseFloat(document.getElementById('edit-amount').value);
+    const unit    = document.getElementById('edit-unit').value;
+    const density = parseFloat(document.getElementById('edit-density').value)||1;
+    if (!name||!price||!amount) { showToast('모든 항목을 입력하세요'); return; }
+    await updateDoc(doc(db,'cost_ingredients',editingId),{name,price,amount,unit,density});
+    showToast('수정됨 ✓');
+    closeEdit();
+  });
+
+  // ── Render ───────────────────────────────────────────
+  function renderList(search='') {
+    const list = document.getElementById('ing-list');
+    const filtered = ingredients.filter(i=>i.name.toLowerCase().includes(search.toLowerCase()));
+    if (!filtered.length) { list.innerHTML='<div class="empty-list">식재료가 없어요</div>'; return; }
+    list.innerHTML='';
+    filtered.forEach(ing => {
+      const costs = calcCosts(ing.price, ing.amount, ing.unit, ing.density||1);
+      const row = document.createElement('div');
+      row.className='ing-row';
+      row.innerHTML=`
+        <div>
+          <div class="ing-name">${ing.name}</div>
+          <div class="ing-info">$${ing.price?.toFixed(2)} / ${ing.amount}${ing.unit}</div>
+          <div class="ing-actions">
+            <button class="ing-edit-btn" data-id="${ing.id}">✏️ 수정</button>
+            <button class="ing-del" data-id="${ing.id}">삭제</button>
+          </div>
+        </div>
+        <div class="ing-costs">${costs.map(c=>`<span class="cost-chip">${c.label} = ${fmt(c.val)}</span>`).join('')}</div>
+      `;
+      row.querySelector('.ing-edit-btn').addEventListener('click', ()=>openEdit(ing));
+      row.querySelector('.ing-del').addEventListener('click', async()=>{
+        await deleteDoc(doc(db,'cost_ingredients',ing.id));
+        showToast('삭제됨');
+      });
+      list.appendChild(row);
+    });
+  }
+
+  document.getElementById('search-input').addEventListener('input', function(){ renderList(this.value); });
+</script>
+  <script>
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("/app/sw.js")
+          .catch(e => console.log("SW error:", e));
+      });
+    }
+  </script>
+</body>
+</html>

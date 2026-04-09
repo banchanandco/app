@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>스케줄 — Banchan and Co</title>
+  <link rel="manifest" href="manifest.json"/>
+  <meta name="theme-color" content="#9caf88"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="default"/>
+  <meta name="apple-mobile-web-app-title" content="Banchan"/>
+  <link rel="apple-touch-icon" href="icons/icon-192.png"/>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{--accent:#9caf88;--accent-dark:#7a9068;--accent-bg:#f0f5ec;--accent-light:#c8d9bc;--bg:#f5f4f0;--surface:#fff;--border:#dedad3;--subtle:#eceae5;--muted:#9a9488;--body:#4a4540;--heading:#2a2520;--brown:#5c3d2e;--brown-light:#8b6355}
+    body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--body);min-height:100vh;padding-bottom:60px}
+
+    /* HEADER */
+    header{background:var(--accent);color:#fff;padding:14px 16px;position:sticky;top:0;z-index:200;display:flex;align-items:center;justify-content:space-between}
+    .header-left{display:flex;align-items:center;gap:12px}
+    .hamburger{background:none;border:none;cursor:pointer;padding:4px;display:flex;flex-direction:column;gap:5px}
+    .hamburger span{display:block;width:22px;height:2px;background:#fff;border-radius:2px}
+    .back-btn{background:none;border:none;color:#fff;font-size:1.2rem;cursor:pointer;padding:4px;line-height:1}
+    header h1{font-size:1.05rem;font-weight:700;color:#fff}
+    .header-right{display:flex;align-items:center;gap:10px}
+    .user-avatar{width:28px;height:28px;border-radius:50%;border:2px solid rgba(255,255,255,0.4);object-fit:cover}
+
+    /* DRAWER */
+    .drawer-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.35);z-index:300;opacity:0;pointer-events:none;transition:opacity .25s}
+    .drawer-overlay.open{opacity:1;pointer-events:all}
+    .drawer{position:fixed;left:-280px;top:0;bottom:0;width:280px;background:var(--surface);z-index:301;transition:left .25s;display:flex;flex-direction:column;box-shadow:4px 0 20px rgba(0,0,0,0.12)}
+    .drawer.open{left:0}
+    .drawer-header{background:var(--accent);padding:44px 20px 20px;display:flex;flex-direction:column;gap:6px}
+    .drawer-avatar{width:46px;height:46px;border-radius:50%;border:2px solid rgba(255,255,255,0.4);object-fit:cover;margin-bottom:4px}
+    .drawer-name{font-size:1rem;font-weight:700;color:#fff}
+    .drawer-email{font-size:0.73rem;color:rgba(255,255,255,0.65)}
+    .drawer-menu{flex:1;padding:10px 0}
+    .drawer-item{display:flex;align-items:center;gap:14px;padding:14px 20px;font-size:0.9rem;color:var(--body);cursor:pointer}
+    .drawer-item:active{background:var(--accent-bg)}
+    .drawer-item.active{color:var(--accent-dark);font-weight:600;background:var(--accent-bg)}
+    .drawer-item .di-icon{font-size:1.2rem}
+    .drawer-logout{margin:0 16px 20px;padding:12px;border:1.5px solid var(--border);border-radius:10px;background:transparent;font-family:'Noto Sans KR',sans-serif;font-size:0.85rem;color:var(--muted);cursor:pointer;width:calc(100% - 32px)}
+    .drawer-logout:active{background:var(--subtle)}
+
+    /* CALENDAR NAV */
+    .cal-nav{display:flex;align-items:center;justify-content:space-between;padding:16px 16px 8px}
+    .cal-nav h2{font-size:1rem;font-weight:700;color:var(--heading)}
+    .nav-arrows{display:flex;gap:8px}
+    .arrow-btn{width:34px;height:34px;border-radius:50%;border:1.5px solid var(--border);background:var(--surface);color:var(--body);font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center}
+    .arrow-btn:active{background:var(--subtle)}
+    .today-btn{padding:6px 14px;border-radius:20px;border:1.5px solid var(--border);background:var(--surface);font-family:'Noto Sans KR',sans-serif;font-size:0.78rem;color:var(--body);cursor:pointer}
+    .today-btn:active{background:var(--subtle)}
+
+    /* CALENDAR GRID */
+    .cal-wrap{padding:0 12px}
+    .cal-grid{background:var(--surface);border-radius:16px;border:1px solid var(--border);overflow:hidden}
+    .cal-dow{display:grid;grid-template-columns:repeat(7,1fr);border-bottom:1px solid var(--subtle)}
+    .cal-dow div{text-align:center;padding:8px 0;font-size:0.7rem;font-weight:600;color:var(--muted)}
+    .cal-dow div:first-child{color:#c0392b}
+    .cal-dow div:last-child{color:#2980b9}
+    .cal-days{display:grid;grid-template-columns:repeat(7,1fr)}
+    .cal-cell{min-height:52px;border-right:1px solid var(--subtle);border-bottom:1px solid var(--subtle);padding:6px 4px 4px;cursor:pointer;position:relative;transition:background .15s}
+    .cal-cell:nth-child(7n){border-right:none}
+    .cal-cell:active{background:var(--accent-bg)}
+    .cal-cell.other-month .day-num{color:var(--border)}
+    .cal-cell.today{background:var(--accent-bg)}
+    .cal-cell.today .day-num{background:var(--accent);color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-weight:700}
+    .cal-cell.selected{background:var(--accent-bg);outline:2px solid var(--accent);outline-offset:-2px}
+    .day-num{font-size:0.78rem;font-weight:600;color:var(--heading);width:22px;height:22px;display:flex;align-items:center;justify-content:center;margin-bottom:2px}
+    .cal-cell:nth-child(7n+1) .day-num{color:#c0392b}
+    .cal-cell:nth-child(7n+1).today .day-num{background:#c0392b;color:#fff}
+    .cal-cell:nth-child(7n) .day-num{color:#2980b9}
+    .cal-cell:nth-child(7n).today .day-num{background:#2980b9;color:#fff}
+    .cell-chips{display:flex;flex-direction:column;gap:2px}
+    .chip{font-size:0.58rem;padding:1px 4px;border-radius:4px;background:var(--accent-light);color:var(--accent-dark);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+
+    /* DAY PANEL */
+    .day-panel{margin:12px 12px 0;background:var(--surface);border-radius:16px;border:1px solid var(--border);overflow:hidden}
+    .day-panel-header{padding:14px 16px;border-bottom:1px solid var(--subtle);display:flex;align-items:center;justify-content:space-between}
+    .day-panel-title{font-size:0.95rem;font-weight:700;color:var(--heading)}
+    .day-panel-date{font-size:0.78rem;color:var(--muted)}
+    .staff-list{padding:8px 0}
+    .staff-row{display:flex;align-items:center;gap:12px;padding:10px 16px;border-bottom:1px solid var(--subtle)}
+    .staff-row:last-child{border-bottom:none}
+    .staff-color{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+    .staff-name{flex:1;font-size:0.88rem;color:var(--body)}
+    .staff-time{font-size:0.78rem;color:var(--muted);font-family:'DM Mono',monospace}
+    .staff-del{width:26px;height:26px;border-radius:50%;border:none;background:transparent;color:var(--muted);font-size:0.85rem;cursor:pointer;display:flex;align-items:center;justify-content:center}
+    .staff-del:active{background:var(--subtle)}
+    .no-staff{padding:20px 16px;text-align:center;color:var(--muted);font-size:0.82rem}
+
+    /* ADD STAFF */
+    .add-staff-wrap{padding:12px 16px;border-top:1px solid var(--subtle)}
+    .add-staff-row{display:flex;gap:8px;margin-bottom:8px}
+    .staff-input{flex:1;border:1px solid var(--border);outline:none;font-family:'Noto Sans KR',sans-serif;font-size:0.85rem;color:var(--body);background:var(--subtle);border-radius:8px;padding:9px 12px}
+    .staff-input:focus{border-color:var(--accent)}
+    .time-row{display:flex;gap:8px;margin-bottom:8px}
+    .time-input{flex:1;border:1px solid var(--border);outline:none;font-family:'DM Mono',monospace;font-size:0.85rem;color:var(--body);background:var(--subtle);border-radius:8px;padding:9px 10px}
+    .time-input:focus{border-color:var(--accent)}
+    .time-sep{display:flex;align-items:center;color:var(--muted);font-size:0.85rem;padding:0 2px}
+    .color-row{display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap}
+    .color-dot{width:24px;height:24px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:border-color .15s}
+    .color-dot.selected{border-color:var(--heading)}
+    .add-staff-btn{width:100%;padding:11px;border:none;border-radius:10px;background:var(--accent);color:#fff;font-family:'Noto Sans KR',sans-serif;font-size:0.88rem;font-weight:600;cursor:pointer}
+    .add-staff-btn:active{background:var(--accent-dark)}
+
+    /* COPY WEEK */
+    .copy-wrap{margin:10px 12px 0;display:flex;gap:8px}
+    .copy-btn{flex:1;padding:10px;border:1.5px dashed var(--accent-light);border-radius:10px;background:transparent;color:var(--accent-dark);font-family:'Noto Sans KR',sans-serif;font-size:0.78rem;cursor:pointer}
+    .copy-btn:active{background:var(--accent-bg)}
+
+    #toast{position:fixed;bottom:20px;right:16px;background:var(--accent-dark);color:#fff;font-size:0.75rem;padding:7px 14px;border-radius:20px;opacity:0;transition:opacity .3s;z-index:999;pointer-events:none;font-family:'DM Mono',monospace}
+  </style>
+</head>
+<body>
+  <div class="drawer-overlay" id="drawer-overlay"></div>
+  <div class="drawer" id="drawer">
+    <div class="drawer-header">
+      <img class="drawer-avatar" id="drawer-avatar" src="" alt=""/>
+      <div class="drawer-name" id="drawer-name"></div>
+      <div class="drawer-email" id="drawer-email"></div>
+    </div>
+    <div class="drawer-menu">
+      <div class="drawer-item" onclick="location.href='main.html'"><span class="di-icon">🏠</span> 홈</div>
+      <div class="drawer-item" onclick="location.href='inventory.html'"><span class="di-icon">📋</span> 재고 관리</div>
+      <div class="drawer-item" onclick="location.href='statistics.html'"><span class="di-icon">📊</span> 통계</div>
+      <div class="drawer-item active"><span class="di-icon">📅</span> 스케줄</div>
+      <div class="drawer-item" onclick="location.href='cost.html'"><span class="di-icon">🧮</span> 원가계산</div>
+      <div class="drawer-item" onclick="location.href='recipe.html'"><span class="di-icon">📖</span> 레시피</div>
+    </div>
+    <button class="drawer-logout" id="logout-btn">로그아웃</button>
+  </div>
+
+  <header>
+    <div class="header-left">
+      <button class="hamburger" id="hamburger-btn"><span></span><span></span><span></span></button>
+      <button class="back-btn" onclick="location.href='main.html'">‹</button>
+      <h1>스케줄</h1>
+    </div>
+    <div class="header-right">
+      <img class="user-avatar" id="header-avatar" src="" alt=""/>
+    </div>
+  </header>
+
+  <!-- Calendar Nav -->
+  <div class="cal-nav">
+    <h2 id="cal-title"></h2>
+    <div style="display:flex;gap:8px;align-items:center">
+      <button class="today-btn" id="today-btn">오늘</button>
+      <div class="nav-arrows">
+        <button class="arrow-btn" id="prev-btn">‹</button>
+        <button class="arrow-btn" id="next-btn">›</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Calendar -->
+  <div class="cal-wrap">
+    <div class="cal-grid">
+      <div class="cal-dow">
+        <div>일</div><div>월</div><div>화</div><div>수</div><div>목</div><div>금</div><div>토</div>
+      </div>
+      <div class="cal-days" id="cal-days"></div>
+    </div>
+  </div>
+
+  <!-- Day Panel -->
+  <div class="day-panel" id="day-panel">
+    <div class="day-panel-header">
+      <span class="day-panel-title" id="panel-title">날짜를 선택하세요</span>
+      <span class="day-panel-date" id="panel-date"></span>
+    </div>
+    <div class="staff-list" id="staff-list">
+      <div class="no-staff">날짜를 선택하면 스케줄을 관리할 수 있어요</div>
+    </div>
+    <div class="add-staff-wrap" id="add-staff-wrap" style="display:none">
+      <div class="add-staff-row">
+        <input class="staff-input" id="staff-name-input" placeholder="이름" maxlength="20"/>
+      </div>
+      <div class="time-row">
+        <input class="time-input" id="time-start" placeholder="09:00" maxlength="5"/>
+        <span class="time-sep">~</span>
+        <input class="time-input" id="time-end" placeholder="18:00" maxlength="5"/>
+      </div>
+      <div class="color-row" id="color-row"></div>
+      <button class="add-staff-btn" id="add-staff-btn">+ 추가</button>
+    </div>
+  </div>
+
+  <div class="copy-wrap" id="copy-wrap" style="display:none">
+    <button class="copy-btn" id="copy-prev-btn">◁ 지난주 복사</button>
+    <button class="copy-btn" id="copy-next-btn">이번 스케줄을 다음주에 ▷</button>
+  </div>
+
+  <div id="toast"></div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getAuth, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+    import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+    const fbApp = initializeApp({apiKey:"AIzaSyArW3yhj81OJpOkCEYfyaelgcdo8o_IAPw",authDomain:"banchan-inventory-144bd.firebaseapp.com",projectId:"banchan-inventory-144bd",storageBucket:"banchan-inventory-144bd.firebasestorage.app",messagingSenderId:"1022526862273",appId:"1:1022526862273:web:12a025d9db24c7c6b83540"});
+    const auth = getAuth(fbApp), db = getFirestore(fbApp);
+
+    const COLORS = ['#9caf88','#e8a598','#f0c98a','#8ab4d4','#b09ed4','#d4b09e','#a8d4c8','#d4a8c8'];
+    let selectedColor = COLORS[0];
+    let currentYear, currentMonth, selectedDate = null;
+    let scheduleCache = {}; // key: "YYYY-MM-DD", value: [{name, start, end, color}]
+
+    // ── Auth ──────────────────────────────────────────
+    onAuthStateChanged(auth, user => {
+      if (!user) { location.href='index.html'; return; }
+      document.getElementById('header-avatar').src = user.photoURL||'';
+      document.getElementById('drawer-avatar').src  = user.photoURL||'';
+      document.getElementById('drawer-name').textContent  = user.displayName||'';
+      document.getElementById('drawer-email').textContent = user.email||'';
+    });
+
+    // ── Drawer ────────────────────────────────────────
+    document.getElementById('hamburger-btn').addEventListener('click', () => { document.getElementById('drawer').classList.add('open'); document.getElementById('drawer-overlay').classList.add('open'); });
+    document.getElementById('drawer-overlay').addEventListener('click', () => { document.getElementById('drawer').classList.remove('open'); document.getElementById('drawer-overlay').classList.remove('open'); });
+    document.getElementById('logout-btn').addEventListener('click', async () => { await signOut(auth); location.href='index.html'; });
+
+    // ── Toast ─────────────────────────────────────────
+    function showToast(msg) {
+      const el = document.getElementById('toast');
+      el.textContent = msg; el.style.opacity = '1';
+      clearTimeout(el._t); el._t = setTimeout(() => el.style.opacity = '0', 2000);
+    }
+
+    // ── Date helpers ──────────────────────────────────
+    function dateKey(y, m, d) { return `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`; }
+    function todayKey() { const t=new Date(); return dateKey(t.getFullYear(),t.getMonth()+1,t.getDate()); }
+    function fmtTitle(y, m) {
+      const names=['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
+      return `${y}년 ${names[m-1]}`;
+    }
+
+    // ── Firestore ─────────────────────────────────────
+    async function loadMonth(y, m) {
+      const key = `schedule_${y}_${String(m).padStart(2,'0')}`;
+      try {
+        const snap = await getDoc(doc(db, 'schedules', key));
+        if (snap.exists()) {
+          const data = snap.data();
+          Object.entries(data).forEach(([k,v]) => { scheduleCache[k] = v; });
+        }
+      } catch(e) { console.error(e); }
+    }
+
+    async function saveDay(dateStr) {
+      const d = dateStr.slice(0,7).replace('-','_');
+      const key = `schedule_${d.replace('-','_')}`;
+      // collect entire month
+      const monthData = {};
+      Object.entries(scheduleCache).forEach(([k,v]) => {
+        if (k.startsWith(dateStr.slice(0,7))) monthData[k] = v;
+      });
+      try {
+        await setDoc(doc(db, 'schedules', key), monthData);
+        showToast('저장됨 ✓');
+      } catch(e) { showToast('저장 실패'); }
+    }
+
+    // ── Calendar render ───────────────────────────────
+    async function renderCalendar(y, m) {
+      currentYear = y; currentMonth = m;
+      document.getElementById('cal-title').textContent = fmtTitle(y, m);
+      await loadMonth(y, m);
+      const firstDay = new Date(y, m-1, 1).getDay();
+      const daysInMonth = new Date(y, m, 0).getDate();
+      const daysInPrev  = new Date(y, m-1, 0).getDate();
+      const grid = document.getElementById('cal-days');
+      grid.innerHTML = '';
+      const today = todayKey();
+      let cells = [];
+      // prev month
+      for (let i = firstDay-1; i >= 0; i--) {
+        cells.push({ day: daysInPrev-i, month: m-1 === 0 ? 12 : m-1, year: m-1 === 0 ? y-1 : y, other: true });
+      }
+      // current month
+      for (let i = 1; i <= daysInMonth; i++) {
+        cells.push({ day: i, month: m, year: y, other: false });
+      }
+      // next month
+      let next = 1;
+      while (cells.length % 7 !== 0) {
+        cells.push({ day: next++, month: m+1 > 12 ? 1 : m+1, year: m+1 > 12 ? y+1 : y, other: true });
+      }
+      cells.forEach(c => {
+        const cell = document.createElement('div');
+        cell.className = 'cal-cell' + (c.other ? ' other-month' : '');
+        const dk = dateKey(c.year, c.month, c.day);
+        if (dk === today) cell.classList.add('today');
+        if (dk === selectedDate) cell.classList.add('selected');
+        const numEl = document.createElement('div');
+        numEl.className = 'day-num';
+        numEl.textContent = c.day;
+        cell.appendChild(numEl);
+        // chips
+        const staffToday = scheduleCache[dk] || [];
+        const chipsEl = document.createElement('div');
+        chipsEl.className = 'cell-chips';
+        staffToday.slice(0,2).forEach(s => {
+          const chip = document.createElement('div');
+          chip.className = 'chip';
+          chip.style.background = s.color + '44';
+          chip.style.color = darken(s.color);
+          chip.textContent = s.name;
+          chipsEl.appendChild(chip);
+        });
+        if (staffToday.length > 2) {
+          const more = document.createElement('div');
+          more.className = 'chip';
+          more.style.background = 'var(--subtle)';
+          more.style.color = 'var(--muted)';
+          more.textContent = `+${staffToday.length-2}명`;
+          chipsEl.appendChild(more);
+        }
+        cell.appendChild(chipsEl);
+        cell.addEventListener('click', () => selectDate(dk));
+        grid.appendChild(cell);
+      });
+    }
+
+    function darken(hex) {
+      const r=parseInt(hex.slice(1,3),16), g=parseInt(hex.slice(3,5),16), b=parseInt(hex.slice(5,7),16);
+      return `rgb(${Math.max(0,r-60)},${Math.max(0,g-60)},${Math.max(0,b-60)})`;
+    }
+
+    // ── Select date ───────────────────────────────────
+    function selectDate(dk) {
+      selectedDate = dk;
+      document.querySelectorAll('.cal-cell.selected').forEach(el => el.classList.remove('selected'));
+      // find and highlight
+      renderCalendar(currentYear, currentMonth);
+      renderDayPanel(dk);
+      document.getElementById('add-staff-wrap').style.display = 'block';
+      document.getElementById('copy-wrap').style.display = 'flex';
+    }
+
+    function renderDayPanel(dk) {
+      const [y,m,d] = dk.split('-');
+      const days = ['일','월','화','수','목','금','토'];
+      const dow = new Date(+y,+m-1,+d).getDay();
+      document.getElementById('panel-title').textContent = `${+m}월 ${+d}일 (${days[dow]})`;
+      document.getElementById('panel-date').textContent = dk;
+      const list = document.getElementById('staff-list');
+      const staff = scheduleCache[dk] || [];
+      list.innerHTML = '';
+      if (!staff.length) {
+        list.innerHTML = '<div class="no-staff">등록된 스케줄이 없어요</div>';
+        return;
+      }
+      staff.forEach((s, idx) => {
+        const row = document.createElement('div');
+        row.className = 'staff-row';
+        row.innerHTML = `
+          <div class="staff-color" style="background:${s.color}"></div>
+          <span class="staff-name">${s.name}</span>
+          <span class="staff-time">${s.start||''} ${s.start&&s.end?'~':''} ${s.end||''}</span>
+          <button class="staff-del" data-idx="${idx}">✕</button>
+        `;
+        row.querySelector('.staff-del').addEventListener('click', async () => {
+          scheduleCache[dk] = (scheduleCache[dk]||[]).filter((_,i)=>i!==idx);
+          renderDayPanel(dk);
+          renderCalendar(currentYear, currentMonth);
+          await saveDay(dk);
+        });
+        list.appendChild(row);
+      });
+    }
+
+    // ── Color picker ──────────────────────────────────
+    const colorRow = document.getElementById('color-row');
+    COLORS.forEach(c => {
+      const dot = document.createElement('div');
+      dot.className = 'color-dot' + (c===selectedColor?' selected':'');
+      dot.style.background = c;
+      dot.addEventListener('click', () => {
+        selectedColor = c;
+        document.querySelectorAll('.color-dot').forEach(d=>d.classList.remove('selected'));
+        dot.classList.add('selected');
+      });
+      colorRow.appendChild(dot);
+    });
+
+    // ── Add staff ─────────────────────────────────────
+    document.getElementById('add-staff-btn').addEventListener('click', async () => {
+      if (!selectedDate) return;
+      const name  = document.getElementById('staff-name-input').value.trim();
+      const start = document.getElementById('time-start').value.trim();
+      const end   = document.getElementById('time-end').value.trim();
+      if (!name) { showToast('이름을 입력하세요'); return; }
+      if (!scheduleCache[selectedDate]) scheduleCache[selectedDate] = [];
+      scheduleCache[selectedDate].push({ name, start, end, color: selectedColor });
+      document.getElementById('staff-name-input').value = '';
+      document.getElementById('time-start').value = '';
+      document.getElementById('time-end').value = '';
+      renderDayPanel(selectedDate);
+      renderCalendar(currentYear, currentMonth);
+      await saveDay(selectedDate);
+    });
+
+    // Enter key on name input
+    document.getElementById('staff-name-input').addEventListener('keydown', e => {
+      if (e.key === 'Enter') document.getElementById('add-staff-btn').click();
+    });
+
+    // ── Nav ───────────────────────────────────────────
+    document.getElementById('prev-btn').addEventListener('click', () => {
+      let m=currentMonth-1, y=currentYear;
+      if(m<1){m=12;y--;}
+      renderCalendar(y,m);
+    });
+    document.getElementById('next-btn').addEventListener('click', () => {
+      let m=currentMonth+1, y=currentYear;
+      if(m>12){m=1;y++;}
+      renderCalendar(y,m);
+    });
+    document.getElementById('today-btn').addEventListener('click', () => {
+      const t=new Date();
+      renderCalendar(t.getFullYear(), t.getMonth()+1);
+      selectDate(todayKey());
+    });
+
+    // ── Copy week ─────────────────────────────────────
+    document.getElementById('copy-prev-btn').addEventListener('click', async () => {
+      if (!selectedDate) return;
+      const d = new Date(selectedDate);
+      // get monday of current week
+      const mon = new Date(d); mon.setDate(d.getDate() - d.getDay() + 1);
+      let copied = 0;
+      for (let i=0;i<7;i++) {
+        const cur = new Date(mon); cur.setDate(mon.getDate()+i);
+        const prev = new Date(cur); prev.setDate(cur.getDate()-7);
+        const curKey  = dateKey(cur.getFullYear(),cur.getMonth()+1,cur.getDate());
+        const prevKey = dateKey(prev.getFullYear(),prev.getMonth()+1,prev.getDate());
+        if (scheduleCache[prevKey]?.length) {
+          scheduleCache[curKey] = JSON.parse(JSON.stringify(scheduleCache[prevKey]));
+          copied++;
+        }
+      }
+      if (copied) {
+        await saveDay(selectedDate);
+        renderCalendar(currentYear, currentMonth);
+        if (selectedDate) renderDayPanel(selectedDate);
+        showToast(`지난주 스케줄 복사됨 (${copied}일)`);
+      } else { showToast('지난주 스케줄이 없어요'); }
+    });
+
+    document.getElementById('copy-next-btn').addEventListener('click', async () => {
+      if (!selectedDate) return;
+      const d = new Date(selectedDate);
+      const mon = new Date(d); mon.setDate(d.getDate() - d.getDay() + 1);
+      let copied = 0;
+      for (let i=0;i<7;i++) {
+        const cur = new Date(mon); cur.setDate(mon.getDate()+i);
+        const next = new Date(cur); next.setDate(cur.getDate()+7);
+        const curKey  = dateKey(cur.getFullYear(),cur.getMonth()+1,cur.getDate());
+        const nextKey = dateKey(next.getFullYear(),next.getMonth()+1,next.getDate());
+        if (scheduleCache[curKey]?.length) {
+          scheduleCache[nextKey] = JSON.parse(JSON.stringify(scheduleCache[curKey]));
+          copied++;
+        }
+      }
+      if (copied) {
+        await saveDay(selectedDate);
+        renderCalendar(currentYear, currentMonth);
+        showToast(`다음주에 복사됨 (${copied}일)`);
+      } else { showToast('이번주 스케줄이 없어요'); }
+    });
+
+    // ── Init ──────────────────────────────────────────
+    const t = new Date();
+    renderCalendar(t.getFullYear(), t.getMonth()+1);
+    selectDate(todayKey());
+  </script>
+  <script>
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("/app/sw.js")
+          .catch(e => console.log("SW error:", e));
+      });
+    }
+  </script>
+</body>
+</html>
