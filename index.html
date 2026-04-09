@@ -42,13 +42,45 @@
   </div>
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-    import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged }
+    import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged }
       from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-    const auth = getAuth(initializeApp({apiKey:"AIzaSyArW3yhj81OJpOkCEYfyaelgcdo8o_IAPw",authDomain:"banchan-inventory-144bd.firebaseapp.com",projectId:"banchan-inventory-144bd",storageBucket:"banchan-inventory-144bd.firebasestorage.app",messagingSenderId:"1022526862273",appId:"1:1022526862273:web:12a025d9db24c7c6b83540"}));
-    onAuthStateChanged(auth, user => { if (user) location.href = 'main.html'; });
+    import { getFirestore, doc, getDoc }
+      from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+    const app  = initializeApp({apiKey:"AIzaSyArW3yhj81OJpOkCEYfyaelgcdo8o_IAPw",authDomain:"banchan-inventory-144bd.firebaseapp.com",projectId:"banchan-inventory-144bd",storageBucket:"banchan-inventory-144bd.firebasestorage.app",messagingSenderId:"1022526862273",appId:"1:1022526862273:web:12a025d9db24c7c6b83540"});
+    const auth = getAuth(app);
+    const db   = getFirestore(app);
+
+    function showError(msg) {
+      const el = document.getElementById('err-msg');
+      el.textContent = msg; el.classList.add('show');
+    }
+
+    async function checkAllowed(user) {
+      // Firestore의 allowed_users 컬렉션에서 이메일 확인
+      try {
+        const snap = await getDoc(doc(db, 'allowed_users', user.email));
+        return snap.exists();
+      } catch(e) { return false; }
+    }
+
+    onAuthStateChanged(auth, async user => {
+      if (!user) return;
+      const allowed = await checkAllowed(user);
+      if (allowed) {
+        location.href = 'main.html';
+      } else {
+        await signOut(auth);
+        showError('접근 권한이 없어요. 관리자에게 문의하세요.');
+      }
+    });
+
     document.getElementById('login-btn').addEventListener('click', async () => {
+      document.getElementById('err-msg').classList.remove('show');
       try { await signInWithPopup(auth, new GoogleAuthProvider()); }
-      catch(e) { const el=document.getElementById('err-msg'); el.textContent='로그인 실패: '+e.message; el.classList.add('show'); }
+      catch(e) {
+        if (e.code !== 'auth/popup-closed-by-user') showError('로그인 실패: ' + e.message);
+      }
     });
   </script>
   <script>
