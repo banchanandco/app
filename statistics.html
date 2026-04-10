@@ -13,16 +13,24 @@
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
   <style>
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-    :root{--accent:#9caf88;--accent-dark:#7a9068;--accent-bg:#f0f5ec;--accent-light:#c8d9bc;--bg:#f5f4f0;--surface:#fff;--border:#dedad3;--subtle:#eceae5;--muted:#9a9488;--body:#4a4540;--heading:#2a2520;--urgent:#e05555;--warn:#e09020}
+    :root{
+      --accent:#9caf88;--accent-dark:#7a9068;--accent-bg:#f0f5ec;--accent-light:#c8d9bc;
+      --bg:#f5f4f0;--surface:#fff;--border:#dedad3;--subtle:#eceae5;
+      --muted:#9a9488;--body:#4a4540;--heading:#2a2520;
+      --urgent:#e05555;--urgent-bg:#fdf0f0;--warn:#e09020;--warn-bg:#fdf6ec;
+    }
     body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--body);min-height:100vh;padding-bottom:40px}
+
+    /* HEADER */
     header{background:var(--accent);color:#fff;padding:14px 16px;position:sticky;top:0;z-index:200;display:flex;align-items:center;justify-content:space-between}
     .header-left{display:flex;align-items:center;gap:10px}
     .hamburger{background:none;border:none;cursor:pointer;padding:4px;display:flex;flex-direction:column;gap:5px}
     .hamburger span{display:block;width:22px;height:2px;background:#fff;border-radius:2px}
     .back-btn{background:none;border:none;color:#fff;font-size:1.3rem;cursor:pointer;line-height:1}
     header h1{font-size:1.05rem;font-weight:700;color:#fff}
-    .header-right{display:flex;align-items:center;gap:10px}
     .user-avatar{width:28px;height:28px;border-radius:50%;border:2px solid rgba(255,255,255,0.4);object-fit:cover}
+
+    /* DRAWER */
     .drawer-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.35);z-index:300;opacity:0;pointer-events:none;transition:opacity .25s}
     .drawer-overlay.open{opacity:1;pointer-events:all}
     .drawer{position:fixed;left:-280px;top:0;bottom:0;width:280px;background:var(--surface);z-index:301;transition:left .25s;display:flex;flex-direction:column;box-shadow:4px 0 20px rgba(0,0,0,0.12)}
@@ -38,49 +46,58 @@
     .drawer-item .di-icon{font-size:1.2rem}
     .drawer-logout{margin:0 16px 20px;padding:12px;border:1.5px solid var(--border);border-radius:10px;background:transparent;font-family:'Noto Sans KR',sans-serif;font-size:0.85rem;color:var(--muted);cursor:pointer;width:calc(100% - 32px)}
 
-    /* PERIOD TABS */
-    .period-bar{display:flex;background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:53px;z-index:100}
-    .period-btn{flex:1;padding:12px 6px;border:none;background:transparent;font-family:'Noto Sans KR',sans-serif;font-size:0.82rem;font-weight:600;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent}
-    .period-btn.active{color:var(--accent-dark);border-bottom-color:var(--accent)}
+    /* SECTION TABS (입고/재고/출고) */
+    .sec-tab-bar{display:flex;background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:53px;z-index:100}
+    .sec-tab{flex:1;padding:13px 6px;border:none;background:transparent;font-family:'Noto Sans KR',sans-serif;font-size:0.85rem;font-weight:600;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent}
+    .sec-tab.active{color:var(--accent-dark);border-bottom-color:var(--accent)}
 
-    /* NAV TABS (within period) */
-    .nav-tabs{display:flex;gap:8px;overflow-x:auto;padding:12px 16px 0}
-    .nav-tabs::-webkit-scrollbar{display:none}
-    .nav-tab{flex-shrink:0;padding:6px 14px;border-radius:20px;border:1.5px solid var(--border);background:transparent;font-family:'Noto Sans KR',sans-serif;font-size:0.78rem;color:var(--muted);cursor:pointer}
-    .nav-tab.active{background:var(--accent);border-color:var(--accent);color:#fff}
+    /* PERIOD TABS (일간/주간/월간) */
+    .period-bar{display:flex;gap:6px;padding:12px 14px 0}
+    .period-btn{padding:6px 16px;border-radius:20px;border:1.5px solid var(--border);background:transparent;font-family:'Noto Sans KR',sans-serif;font-size:0.78rem;color:var(--muted);cursor:pointer}
+    .period-btn.active{background:var(--accent);border-color:var(--accent);color:#fff}
 
-    .content{padding:14px;display:flex;flex-direction:column;gap:12px}
+    /* CONTENT */
+    .content{padding:12px 14px;display:flex;flex-direction:column;gap:12px}
 
-    /* SUMMARY GRID */
+    /* SUMMARY */
     .sum-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
-    .sum-card{background:var(--surface);border-radius:12px;border:1px solid var(--border);padding:12px 10px;text-align:center}
-    .sum-num{font-family:'DM Mono',monospace;font-size:1.5rem;font-weight:600;color:var(--accent-dark)}
-    .sum-num.urgent{color:var(--urgent)}
+    .sum-card{background:var(--surface);border-radius:12px;border:1px solid var(--border);padding:14px 10px;text-align:center}
+    .sum-num{font-family:'DM Mono',monospace;font-size:1.5rem;font-weight:600;color:var(--accent-dark);line-height:1}
     .sum-num.warn{color:var(--warn)}
-    .sum-label{font-size:0.68rem;color:var(--muted);margin-top:3px}
+    .sum-num.urgent{color:var(--urgent)}
+    .sum-label{font-size:0.67rem;color:var(--muted);margin-top:4px}
 
-    /* STATS CARD */
-    .stats-card{background:var(--surface);border-radius:14px;border:1px solid var(--border);overflow:hidden}
-    .stats-card-hdr{padding:11px 16px;border-bottom:1px solid var(--subtle);font-size:0.82rem;font-weight:700;color:var(--heading)}
+    /* CARD */
+    .card{background:var(--surface);border-radius:14px;border:1px solid var(--border);overflow:hidden}
+    .card-hdr{padding:11px 16px;border-bottom:1px solid var(--subtle);font-size:0.82rem;font-weight:700;color:var(--heading)}
+
+    /* BAR */
     .bar-wrap{padding:10px 16px;border-bottom:1px solid var(--subtle)}
     .bar-wrap:last-child{border-bottom:none}
-    .bar-label{display:flex;justify-content:space-between;font-size:0.75rem;color:var(--body);margin-bottom:5px}
+    .bar-label{display:flex;justify-content:space-between;font-size:0.76rem;color:var(--body);margin-bottom:5px}
     .bar-bg{background:var(--subtle);border-radius:6px;height:7px;overflow:hidden}
-    .bar-fill{height:100%;background:var(--accent);border-radius:6px;transition:width .4s ease}
+    .bar-fill{height:100%;border-radius:6px;transition:width .4s ease}
+    .bar-fill.in{background:var(--accent)}
     .bar-fill.out{background:var(--warn)}
+    .bar-fill.stock{background:var(--accent-dark)}
 
-    /* ITEM LIST */
-    .stats-row{display:flex;align-items:center;justify-content:space-between;padding:9px 16px;border-bottom:1px solid var(--subtle);font-size:0.84rem}
-    .stats-row:last-child{border-bottom:none}
-    .stats-row .sname{color:var(--body);flex:1}
-    .stats-row .sqty{font-family:'DM Mono',monospace;font-size:0.78rem;color:var(--accent-dark);white-space:nowrap}
-    .stats-row .sqty.low{color:var(--urgent)}
-    .stats-row .sqty.warn{color:var(--warn)}
-    .stats-empty{padding:24px;text-align:center;color:var(--muted);font-size:0.82rem}
-    .sec-label{font-size:0.72rem;font-weight:700;color:var(--muted);background:var(--subtle);padding:5px 16px;border-bottom:1px solid var(--subtle)}
+    /* LIST */
+    .list-row{display:flex;align-items:center;justify-content:space-between;padding:9px 16px;border-bottom:1px solid var(--subtle);font-size:0.84rem}
+    .list-row:last-child{border-bottom:none}
+    .list-name{color:var(--body);flex:1}
+    .list-val{font-family:'DM Mono',monospace;font-size:0.78rem;white-space:nowrap;margin-left:8px}
+    .list-val.ok{color:var(--accent-dark)}
+    .list-val.warn{color:var(--warn)}
+    .list-val.urgent{color:var(--urgent)}
+    .sec-divider{font-size:0.72rem;font-weight:700;color:var(--muted);background:var(--subtle);padding:5px 16px;border-bottom:1px solid var(--subtle)}
+
+    .period-label{font-size:0.78rem;color:var(--muted);padding:4px 2px}
+    .empty{padding:28px;text-align:center;color:var(--muted);font-size:0.82rem}
+    .loading{padding:60px;text-align:center;color:var(--muted);font-size:0.85rem}
   </style>
 </head>
 <body>
+
 <div class="drawer-overlay" id="drawer-overlay"></div>
 <div class="drawer" id="drawer">
   <div class="drawer-header">
@@ -110,31 +127,40 @@
   </div>
 </header>
 
-<!-- PERIOD TABS -->
-<div class="period-bar">
-  <button class="period-btn active" data-period="day">일간</button>
-  <button class="period-btn" data-period="week">주간</button>
-  <button class="period-btn" data-period="month">월간</button>
+<!-- SECTION TABS -->
+<div class="sec-tab-bar">
+  <button class="sec-tab active" data-sec="inbound">📥 입고</button>
+  <button class="sec-tab" data-sec="stock">📦 재고</button>
+  <button class="sec-tab" data-sec="outbound">📤 출고</button>
 </div>
 
-<!-- NAV TABS: 입고 / 재고 / 출고 -->
-<div class="nav-tabs" id="nav-tabs">
-  <button class="nav-tab active" data-view="inbound">📥 입고</button>
-  <button class="nav-tab" data-view="stock">📦 재고</button>
-  <button class="nav-tab" data-view="outbound">📤 출고</button>
+<!-- PERIOD TABS -->
+<div class="period-bar">
+  <button class="period-btn active" data-p="day">일간</button>
+  <button class="period-btn" data-p="week">주간</button>
+  <button class="period-btn" data-p="month">월간</button>
 </div>
 
 <div class="content" id="content">
-  <div style="padding:40px 0;text-align:center;color:var(--muted)">로딩 중...</div>
+  <div class="loading">로딩 중...</div>
 </div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { getFirestore, collection, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getFirestore, collection, onSnapshot, query, orderBy }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-const fbApp = initializeApp({apiKey:"AIzaSyArW3yhj81OJpOkCEYfyaelgcdo8o_IAPw",authDomain:"banchan-inventory-144bd.firebaseapp.com",projectId:"banchan-inventory-144bd",storageBucket:"banchan-inventory-144bd.firebasestorage.app",messagingSenderId:"1022526862273",appId:"1:1022526862273:web:12a025d9db24c7c6b83540"});
-const auth = getAuth(fbApp), db = getFirestore(fbApp);
+const app  = initializeApp({
+  apiKey:"AIzaSyArW3yhj81OJpOkCEYfyaelgcdo8o_IAPw",
+  authDomain:"banchan-inventory-144bd.firebaseapp.com",
+  projectId:"banchan-inventory-144bd",
+  storageBucket:"banchan-inventory-144bd.firebasestorage.app",
+  messagingSenderId:"1022526862273",
+  appId:"1:1022526862273:web:12a025d9db24c7c6b83540"
+});
+const auth = getAuth(app);
+const db   = getFirestore(app);
 
 const SECTIONS = [
   {id:'food',      label:'식재료',   icon:'🥩'},
@@ -146,14 +172,12 @@ const SECTIONS = [
 
 const cache = {};
 SECTIONS.forEach(s => cache[s.id] = []);
-let loaded = 0;
-let currentPeriod = 'day';
-let currentView   = 'inbound';
 
-// ── Auth ──────────────────────────────────────────────
-const loadedSecs = new Set();
-let firestoreStarted = false;
+let curSec    = 'inbound';
+let curPeriod = 'day';
+let ready     = false;
 
+// ── Auth + Firestore ──────────────────────────────────
 onAuthStateChanged(auth, user => {
   if (!user) { location.href='index.html'; return; }
   document.getElementById('header-avatar').src = user.photoURL||'';
@@ -161,19 +185,14 @@ onAuthStateChanged(auth, user => {
   document.getElementById('drawer-name').textContent  = user.displayName||'';
   document.getElementById('drawer-email').textContent = user.email||'';
 
-  if (firestoreStarted) return;
-  firestoreStarted = true;
-
+  let done = 0;
   SECTIONS.forEach(sec => {
     const q = query(collection(db, `inv_${sec.id}`), orderBy('createdAt'));
     onSnapshot(q, snap => {
       cache[sec.id] = snap.docs.map(d => ({id:d.id,...d.data()}));
-      loadedSecs.add(sec.id);
-      render();
-    }, () => {
-      loadedSecs.add(sec.id);
-      render();
-    });
+      if (!ready) { done++; if (done >= SECTIONS.length) { ready=true; render(); } }
+      else render();
+    }, () => { done++; if (!ready && done>=SECTIONS.length){ ready=true; render(); } });
   });
 });
 
@@ -182,243 +201,266 @@ document.getElementById('hamburger-btn').addEventListener('click',()=>{document.
 document.getElementById('drawer-overlay').addEventListener('click',()=>{document.getElementById('drawer').classList.remove('open');document.getElementById('drawer-overlay').classList.remove('open');});
 document.getElementById('logout-btn').addEventListener('click',async()=>{await signOut(auth);location.href='index.html';});
 
+// ── Section tabs ──────────────────────────────────────
+document.querySelectorAll('.sec-tab').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.sec-tab').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    curSec = btn.dataset.sec;
+    render();
+  });
+});
+
 // ── Period tabs ───────────────────────────────────────
 document.querySelectorAll('.period-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('.period-btn').forEach(b=>b.classList.remove('active'));
     btn.classList.add('active');
-    currentPeriod = btn.dataset.period;
+    curPeriod = btn.dataset.p;
     render();
   });
 });
 
-// ── View tabs ─────────────────────────────────────────
-document.querySelectorAll('.nav-tab').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('.nav-tab').forEach(b=>b.classList.remove('active'));
-    btn.classList.add('active');
-    currentView = btn.dataset.view;
-    render();
-  });
-});
-
-// ── Date range helpers ────────────────────────────────
-function getRange(period) {
+// ── Date helpers ──────────────────────────────────────
+function getRange(p) {
   const now = new Date();
-  let start, end;
-  if (period === 'day') {
-    start = new Date(now); start.setHours(0,0,0,0);
-    end   = new Date(now); end.setHours(23,59,59,999);
-  } else if (period === 'week') {
-    const day = now.getDay();
-    start = new Date(now); start.setDate(now.getDate() - day + 1); start.setHours(0,0,0,0);
-    end   = new Date(start); end.setDate(start.getDate()+6); end.setHours(23,59,59,999);
+  let s, e;
+  if (p === 'day') {
+    s = new Date(now); s.setHours(0,0,0,0);
+    e = new Date(now); e.setHours(23,59,59,999);
+  } else if (p === 'week') {
+    const d = now.getDay();
+    s = new Date(now); s.setDate(now.getDate()-d+1); s.setHours(0,0,0,0);
+    e = new Date(s); e.setDate(s.getDate()+6); e.setHours(23,59,59,999);
   } else {
-    start = new Date(now.getFullYear(), now.getMonth(), 1);
-    end   = new Date(now.getFullYear(), now.getMonth()+1, 0, 23,59,59,999);
+    s = new Date(now.getFullYear(), now.getMonth(), 1);
+    e = new Date(now.getFullYear(), now.getMonth()+1, 0, 23,59,59,999);
   }
-  return { start: start.getTime(), end: end.getTime() };
+  return {s:s.getTime(), e:e.getTime()};
 }
 
-function periodLabel(period) {
+function periodStr(p) {
   const now = new Date();
-  if (period === 'day') return `${now.getMonth()+1}/${now.getDate()} (오늘)`;
-  if (period === 'week') {
-    const day = now.getDay();
-    const mon = new Date(now); mon.setDate(now.getDate()-day+1);
-    const sun = new Date(mon); sun.setDate(mon.getDate()+6);
+  if (p==='day') return `${now.getMonth()+1}/${now.getDate()} 오늘`;
+  if (p==='week') {
+    const d=now.getDay();
+    const mon=new Date(now); mon.setDate(now.getDate()-d+1);
+    const sun=new Date(mon); sun.setDate(mon.getDate()+6);
     return `${mon.getMonth()+1}/${mon.getDate()} – ${sun.getMonth()+1}/${sun.getDate()}`;
   }
   return `${now.getFullYear()}년 ${now.getMonth()+1}월`;
 }
 
-// ── Main render ───────────────────────────────────────
+// ── Render ────────────────────────────────────────────
 function render() {
-  const {start, end} = getRange(currentPeriod);
   const content = document.getElementById('content');
   content.innerHTML = '';
 
   // Period label
-  const pLabel = document.createElement('div');
-  pLabel.style.cssText='font-size:0.8rem;color:var(--muted);padding:4px 2px';
-  pLabel.textContent = periodLabel(currentPeriod);
-  content.appendChild(pLabel);
+  const pl = document.createElement('div');
+  pl.className = 'period-label';
+  pl.textContent = periodStr(curPeriod);
+  content.appendChild(pl);
 
-  if (currentView === 'inbound') renderInbound(content, start, end);
-  else if (currentView === 'stock') renderStock(content);
-  else renderOutbound(content, start, end);
+  if (curSec === 'inbound')  renderInbound(content);
+  else if (curSec === 'stock')   renderStock(content);
+  else                           renderOutbound(content);
 }
 
-// ── INBOUND stats ─────────────────────────────────────
-function renderInbound(content, start, end) {
-  // Gather items added in period
-  const allItems = SECTIONS.flatMap(sec =>
-    cache[sec.id]
-      .filter(i => i.createdAt >= start && i.createdAt <= end)
-      .map(i => ({...i, sec}))
+// ─────────────────────────────────────────────────────
+// 📥 INBOUND
+// ─────────────────────────────────────────────────────
+function renderInbound(content) {
+  const {s, e} = getRange(curPeriod);
+  const items = SECTIONS.flatMap(sec =>
+    cache[sec.id].filter(i=>i.createdAt>=s&&i.createdAt<=e).map(i=>({...i,sec}))
   );
 
   // Summary
-  const totalQty = allItems.reduce((a,i) => a + (i.qty||0), 0);
-  const grid = document.createElement('div');
-  grid.className = 'sum-grid';
-  grid.innerHTML = `
-    <div class="sum-card"><div class="sum-num">${allItems.length}</div><div class="sum-label">입고 건수</div></div>
-    <div class="sum-card"><div class="sum-num">${SECTIONS.filter(s=>allItems.some(i=>i.sec.id===s.id)).length}</div><div class="sum-label">카테고리</div></div>
-    <div class="sum-card"><div class="sum-num">${totalQty % 1 === 0 ? totalQty : totalQty.toFixed(1)}</div><div class="sum-label">총 수량</div></div>
+  const totalItems = items.length;
+  const cats = new Set(items.map(i=>i.sec.id)).size;
+  const totalQty = items.reduce((a,i)=>a+(i.qty||0),0);
+
+  const g = div('sum-grid');
+  g.innerHTML = `
+    <div class="sum-card"><div class="sum-num">${totalItems}</div><div class="sum-label">입고 건수</div></div>
+    <div class="sum-card"><div class="sum-num">${cats}</div><div class="sum-label">카테고리</div></div>
+    <div class="sum-card"><div class="sum-num">${fmt(totalQty)}</div><div class="sum-label">총 수량</div></div>
   `;
-  content.appendChild(grid);
+  content.appendChild(g);
 
-  // By section bar
+  // Bar by category
   const bySec = {};
-  SECTIONS.forEach(s => bySec[s.id] = 0);
-  allItems.forEach(i => bySec[i.sec.id] += (i.qty||1));
-  const maxVal = Math.max(...Object.values(bySec), 1);
+  SECTIONS.forEach(s=>bySec[s.id]=0);
+  items.forEach(i=>bySec[i.sec.id]+=(i.qty||1));
+  const maxV = Math.max(...Object.values(bySec), 1);
 
-  const secCard = document.createElement('div');
-  secCard.className = 'stats-card';
-  secCard.innerHTML = '<div class="stats-card-hdr">카테고리별 입고</div>';
+  const barCard = card('카테고리별 입고량');
   SECTIONS.forEach(sec => {
-    const cnt = allItems.filter(i=>i.sec.id===sec.id).length;
+    const cnt = items.filter(i=>i.sec.id===sec.id).length;
     if (!cnt) return;
     const qty = bySec[sec.id];
-    const pct = Math.round((qty/maxVal)*100);
-    const bw = document.createElement('div');bw.className='bar-wrap';
-    bw.innerHTML=`<div class="bar-label"><span>${sec.icon} ${sec.label}</span><span>${cnt}건 / ${qty%1===0?qty:qty.toFixed(1)} 단위</span></div><div class="bar-bg"><div class="bar-fill" style="width:${pct}%"></div></div>`;
-    secCard.appendChild(bw);
+    const pct = Math.round((qty/maxV)*100);
+    barCard.appendChild(barRow(`${sec.icon} ${sec.label}`, `${cnt}건 · ${fmt(qty)}`, pct, 'in'));
   });
-  if (!allItems.length) secCard.innerHTML += '<div class="stats-empty">이 기간에 입고된 항목이 없어요</div>';
-  content.appendChild(secCard);
+  if (!items.length) barCard.appendChild(emptyEl());
+  content.appendChild(barCard);
 
-  // Item list by section
-  const listCard = document.createElement('div');
-  listCard.className = 'stats-card';
-  listCard.innerHTML = '<div class="stats-card-hdr">입고 항목 목록</div>';
-  let hasAny = false;
+  // List by category
+  const listCard = card('입고 목록');
+  let any = false;
   SECTIONS.forEach(sec => {
-    const items = allItems.filter(i=>i.sec.id===sec.id).sort((a,b)=>b.createdAt-a.createdAt);
-    if (!items.length) return;
-    hasAny = true;
-    const sl = document.createElement('div');sl.className='sec-label';sl.textContent=`${sec.icon} ${sec.label}`;
-    listCard.appendChild(sl);
-    items.forEach(item => {
-      const row = document.createElement('div');row.className='stats-row';
+    const si = items.filter(i=>i.sec.id===sec.id).sort((a,b)=>b.createdAt-a.createdAt);
+    if (!si.length) return;
+    any = true;
+    listCard.appendChild(secDiv(`${sec.icon} ${sec.label}`));
+    si.forEach(item => {
       const d = new Date(item.createdAt);
-      const timeStr = `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
-      row.innerHTML=`<span class="sname">${item.name}</span><span class="sqty">${item.qty} ${item.unit}</span><span style="font-size:0.68rem;color:var(--muted);margin-left:8px">${timeStr}</span>`;
-      listCard.appendChild(row);
+      const t = `${d.getMonth()+1}/${d.getDate()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+      const r = listRow(item.name, `${fmt(item.qty)} ${item.unit}`, 'ok');
+      r.querySelector('.list-val').insertAdjacentHTML('afterend',`<span style="font-size:0.68rem;color:var(--muted);margin-left:6px">${t}</span>`);
+      listCard.appendChild(r);
     });
   });
-  if (!hasAny) listCard.innerHTML += '<div class="stats-empty">이 기간에 입고된 항목이 없어요</div>';
+  if (!any) listCard.appendChild(emptyEl('이 기간에 입고된 항목이 없어요'));
   content.appendChild(listCard);
 }
 
-// ── STOCK stats ───────────────────────────────────────
+// ─────────────────────────────────────────────────────
+// 📦 STOCK (재고는 기간 무관 — 현재 상태)
+// ─────────────────────────────────────────────────────
 function renderStock(content) {
-  const allItems = SECTIONS.flatMap(sec => cache[sec.id].map(i=>({...i,sec})));
-  const total    = allItems.length;
-  const low      = allItems.filter(i=>{const r=i.remaining??i.qty;const p=i.qty>0?(r/i.qty)*100:0;return p<=15;}).length;
-  const warn     = allItems.filter(i=>{const r=i.remaining??i.qty;const p=i.qty>0?(r/i.qty)*100:0;return p>15&&p<=40;}).length;
+  const allItems = SECTIONS.flatMap(sec=>cache[sec.id].map(i=>({...i,sec})));
+  const total = allItems.length;
+  const warnC = allItems.filter(i=>{const p=pct(i);return p>15&&p<=40;}).length;
+  const urgC  = allItems.filter(i=>pct(i)<=15).length;
 
-  const grid = document.createElement('div');grid.className='sum-grid';
-  grid.innerHTML=`
-    <div class="sum-card"><div class="sum-num">${total}</div><div class="sum-label">전체 항목</div></div>
-    <div class="sum-card"><div class="sum-num warn">${warn}</div><div class="sum-label">주문 요망</div></div>
-    <div class="sum-card"><div class="sum-num urgent">${low}</div><div class="sum-label">긴급 주문</div></div>
+  const g = div('sum-grid');
+  g.innerHTML = `
+    <div class="sum-card"><div class="sum-num">${total}</div><div class="sum-label">전체 품목</div></div>
+    <div class="sum-card"><div class="sum-num warn">${warnC}</div><div class="sum-label">주문 요망</div></div>
+    <div class="sum-card"><div class="sum-num urgent">${urgC}</div><div class="sum-label">긴급 주문</div></div>
   `;
-  content.appendChild(grid);
+  content.appendChild(g);
 
-  // By section bar (잔여 비율 평균)
-  const secCard = document.createElement('div');secCard.className='stats-card';
-  secCard.innerHTML='<div class="stats-card-hdr">카테고리별 재고 현황</div>';
+  // Bar by category (avg remaining %)
+  const barCard = card('카테고리별 재고율');
   SECTIONS.forEach(sec => {
-    const items = cache[sec.id];
-    if (!items.length) return;
-    const avgPct = items.reduce((a,i)=>{const r=i.remaining??i.qty;return a+(i.qty>0?(r/i.qty)*100:0);},0)/items.length;
-    const bw=document.createElement('div');bw.className='bar-wrap';
-    bw.innerHTML=`<div class="bar-label"><span>${sec.icon} ${sec.label}</span><span>${items.length}개 · 평균 ${avgPct.toFixed(0)}%</span></div><div class="bar-bg"><div class="bar-fill" style="width:${avgPct.toFixed(1)}%"></div></div>`;
-    secCard.appendChild(bw);
+    const its = cache[sec.id];
+    if (!its.length) return;
+    const avg = its.reduce((a,i)=>a+pct(i),0)/its.length;
+    barCard.appendChild(barRow(`${sec.icon} ${sec.label}`, `${its.length}개 · 평균 ${avg.toFixed(0)}%`, avg, 'stock'));
   });
-  if (!allItems.length) secCard.innerHTML+='<div class="stats-empty">재고 항목이 없어요</div>';
-  content.appendChild(secCard);
+  if (!allItems.length) barCard.appendChild(emptyEl());
+  content.appendChild(barCard);
 
-  // Full stock list
-  const listCard=document.createElement('div');listCard.className='stats-card';
-  listCard.innerHTML='<div class="stats-card-hdr">전체 재고 목록</div>';
-  let hasAny=false;
-  SECTIONS.forEach(sec=>{
-    const items=[...cache[sec.id]].sort((a,b)=>a.name.localeCompare(b.name,'ko'));
-    if(!items.length)return;hasAny=true;
-    const sl=document.createElement('div');sl.className='sec-label';sl.textContent=`${sec.icon} ${sec.label}`;
-    listCard.appendChild(sl);
-    items.forEach(item=>{
-      const r=item.remaining??item.qty;
-      const pct=item.qty>0?(r/item.qty)*100:0;
-      const cls=pct<=15?'low':pct<=40?'warn':'';
-      const row=document.createElement('div');row.className='stats-row';
-      row.innerHTML=`<span class="sname">${item.name}</span><span class="sqty ${cls}">${r} / ${item.qty} ${item.unit}</span>`;
-      listCard.appendChild(row);
+  // Full list
+  const listCard = card('전체 재고 현황');
+  let any = false;
+  SECTIONS.forEach(sec => {
+    const its = [...cache[sec.id]].sort((a,b)=>a.name.localeCompare(b.name,'ko'));
+    if (!its.length) return;
+    any = true;
+    listCard.appendChild(secDiv(`${sec.icon} ${sec.label}`));
+    its.forEach(item => {
+      const r = item.remaining ?? item.qty;
+      const p = pct(item);
+      const cls = p<=15?'urgent':p<=40?'warn':'ok';
+      listCard.appendChild(listRow(item.name, `${fmt(r)} / ${fmt(item.qty)} ${item.unit}`, cls));
     });
   });
-  if(!hasAny)listCard.innerHTML+='<div class="stats-empty">재고 항목이 없어요</div>';
+  if (!any) listCard.appendChild(emptyEl());
   content.appendChild(listCard);
 }
 
-// ── OUTBOUND stats ────────────────────────────────────
-function renderOutbound(content, start, end) {
-  // 출고 = 입고 qty - remaining, 기간 내 createdAt 기준
-  const allItems = SECTIONS.flatMap(sec =>
+// ─────────────────────────────────────────────────────
+// 📤 OUTBOUND
+// ─────────────────────────────────────────────────────
+function renderOutbound(content) {
+  const {s, e} = getRange(curPeriod);
+  // 출고량 = 기간 내 입고된 아이템의 (qty - remaining)
+  const items = SECTIONS.flatMap(sec =>
     cache[sec.id]
-      .filter(i => i.createdAt >= start && i.createdAt <= end)
-      .map(i => {
-        const outQty = (i.qty||0) - (i.remaining??i.qty||0);
-        return {...i, outQty: Math.max(0, outQty), sec};
-      })
-  ).filter(i => i.outQty > 0);
+      .filter(i=>i.createdAt>=s&&i.createdAt<=e)
+      .map(i=>({...i, outQty:Math.max(0,(i.qty||0)-(i.remaining??i.qty||0)), sec}))
+  ).filter(i=>i.outQty>0);
 
-  const totalOut = allItems.reduce((a,i)=>a+i.outQty,0);
-  const grid=document.createElement('div');grid.className='sum-grid';
-  grid.innerHTML=`
-    <div class="sum-card"><div class="sum-num">${allItems.length}</div><div class="sum-label">출고 품목</div></div>
-    <div class="sum-card"><div class="sum-num">${totalOut%1===0?totalOut:totalOut.toFixed(1)}</div><div class="sum-label">총 출고량</div></div>
-    <div class="sum-card"><div class="sum-num">${SECTIONS.filter(s=>allItems.some(i=>i.sec.id===s.id)).length}</div><div class="sum-label">카테고리</div></div>
+  const totalOut = items.reduce((a,i)=>a+i.outQty,0);
+  const cats = new Set(items.map(i=>i.sec.id)).size;
+
+  const g = div('sum-grid');
+  g.innerHTML = `
+    <div class="sum-card"><div class="sum-num">${items.length}</div><div class="sum-label">출고 품목</div></div>
+    <div class="sum-card"><div class="sum-num">${fmt(totalOut)}</div><div class="sum-label">총 출고량</div></div>
+    <div class="sum-card"><div class="sum-num">${cats}</div><div class="sum-label">카테고리</div></div>
   `;
-  content.appendChild(grid);
+  content.appendChild(g);
 
-  // By section bar
-  const bySec={};SECTIONS.forEach(s=>bySec[s.id]=0);
-  allItems.forEach(i=>bySec[i.sec.id]+=i.outQty);
-  const maxVal=Math.max(...Object.values(bySec),1);
-  const secCard=document.createElement('div');secCard.className='stats-card';
-  secCard.innerHTML='<div class="stats-card-hdr">카테고리별 출고</div>';
-  SECTIONS.forEach(sec=>{
-    const qty=bySec[sec.id];if(!qty)return;
-    const cnt=allItems.filter(i=>i.sec.id===sec.id).length;
-    const pct=Math.round((qty/maxVal)*100);
-    const bw=document.createElement('div');bw.className='bar-wrap';
-    bw.innerHTML=`<div class="bar-label"><span>${sec.icon} ${sec.label}</span><span>${cnt}건 / ${qty%1===0?qty:qty.toFixed(1)} 단위</span></div><div class="bar-bg"><div class="bar-fill out" style="width:${pct}%"></div></div>`;
-    secCard.appendChild(bw);
+  // Bar by category
+  const bySec = {};
+  SECTIONS.forEach(s=>bySec[s.id]=0);
+  items.forEach(i=>bySec[i.sec.id]+=i.outQty);
+  const maxV = Math.max(...Object.values(bySec),1);
+
+  const barCard = card('카테고리별 출고량');
+  SECTIONS.forEach(sec => {
+    const qty = bySec[sec.id];
+    if (!qty) return;
+    const cnt = items.filter(i=>i.sec.id===sec.id).length;
+    const p = Math.round((qty/maxV)*100);
+    barCard.appendChild(barRow(`${sec.icon} ${sec.label}`, `${cnt}건 · ${fmt(qty)}`, p, 'out'));
   });
-  if(!allItems.length)secCard.innerHTML+='<div class="stats-empty">이 기간에 출고된 항목이 없어요</div>';
-  content.appendChild(secCard);
+  if (!items.length) barCard.appendChild(emptyEl('이 기간에 출고된 항목이 없어요'));
+  content.appendChild(barCard);
 
-  // Item list
-  const listCard=document.createElement('div');listCard.className='stats-card';
-  listCard.innerHTML='<div class="stats-card-hdr">출고 항목 목록</div>';
-  let hasAny=false;
-  SECTIONS.forEach(sec=>{
-    const items=allItems.filter(i=>i.sec.id===sec.id).sort((a,b)=>b.outQty-a.outQty);
-    if(!items.length)return;hasAny=true;
-    const sl=document.createElement('div');sl.className='sec-label';sl.textContent=`${sec.icon} ${sec.label}`;
-    listCard.appendChild(sl);
-    items.forEach(item=>{
-      const row=document.createElement('div');row.className='stats-row';
-      row.innerHTML=`<span class="sname">${item.name}</span><span class="sqty">${item.outQty%1===0?item.outQty:item.outQty.toFixed(2)} ${item.unit} 출고</span>`;
-      listCard.appendChild(row);
+  // List
+  const listCard = card('출고 목록');
+  let any = false;
+  SECTIONS.forEach(sec => {
+    const si = items.filter(i=>i.sec.id===sec.id).sort((a,b)=>b.outQty-a.outQty);
+    if (!si.length) return;
+    any = true;
+    listCard.appendChild(secDiv(`${sec.icon} ${sec.label}`));
+    si.forEach(item => {
+      listCard.appendChild(listRow(item.name, `${fmt(item.outQty)} ${item.unit} 출고`, 'warn'));
     });
   });
-  if(!hasAny)listCard.innerHTML+='<div class="stats-empty">이 기간에 출고된 항목이 없어요</div>';
+  if (!any) listCard.appendChild(emptyEl('이 기간에 출고된 항목이 없어요'));
   content.appendChild(listCard);
+}
+
+// ── Helpers ───────────────────────────────────────────
+function pct(item) {
+  const r = item.remaining ?? item.qty;
+  return item.qty > 0 ? (r / item.qty) * 100 : 0;
+}
+function fmt(n) {
+  if (!n && n!==0) return '0';
+  return Number.isInteger(n) ? n : parseFloat(n.toFixed(2));
+}
+function pad(n) { return String(n).padStart(2,'0'); }
+function div(cls) { const el=document.createElement('div'); el.className=cls; return el; }
+
+function card(title) {
+  const c = div('card');
+  const h = document.createElement('div'); h.className='card-hdr'; h.textContent=title;
+  c.appendChild(h); return c;
+}
+function barRow(label, val, pctVal, type) {
+  const w = div('bar-wrap');
+  w.innerHTML=`<div class="bar-label"><span>${label}</span><span>${val}</span></div><div class="bar-bg"><div class="bar-fill ${type}" style="width:${Math.min(pctVal,100).toFixed(1)}%"></div></div>`;
+  return w;
+}
+function listRow(name, val, cls) {
+  const r = div('list-row');
+  r.innerHTML=`<span class="list-name">${name}</span><span class="list-val ${cls}">${val}</span>`;
+  return r;
+}
+function secDiv(text) {
+  const d = div('sec-divider'); d.textContent=text; return d;
+}
+function emptyEl(msg='데이터가 없어요') {
+  const d = div('empty'); d.textContent=msg; return d;
 }
 </script>
 <script>if('serviceWorker' in navigator){navigator.serviceWorker.register('/app/sw.js').catch(()=>{});}</script>
