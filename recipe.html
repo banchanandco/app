@@ -240,7 +240,11 @@ const _fbApp = initializeApp({
 });
 const db = getFirestore(_fbApp);
 const _auth = getAuth(_fbApp);
-onAuthStateChanged(_auth, user => { if (!user) location.href = 'index.html'; });
+let _currentUser = null;
+onAuthStateChanged(_auth, user => {
+  if (!user) { location.href = 'index.html'; return; }
+  _currentUser = user;
+});
 
 const PIN = '5896';
 let pinBuf = '';
@@ -263,7 +267,7 @@ document.querySelectorAll('.pin-btn').forEach(btn=>{
         sessionStorage.setItem('recipe_auth','1');
         document.getElementById('lock-screen').style.display='none';
         document.getElementById('app').style.display='block';
-        initFirestore();
+        if (_currentUser) initFirestore();
       } else {
         document.getElementById('pin-error').textContent='잘못된 PIN이에요';
         pinBuf=''; updateDots();
@@ -275,7 +279,10 @@ document.querySelectorAll('.pin-btn').forEach(btn=>{
 if(sessionStorage.getItem('recipe_auth')==='1'){
   document.getElementById('lock-screen').style.display='none';
   document.getElementById('app').style.display='block';
-  initFirestore();
+  // Wait for auth state before loading Firestore
+  onAuthStateChanged(_auth, user => {
+    if (user) initFirestore();
+  });
 }
 window.lockApp=()=>{sessionStorage.removeItem('recipe_auth');location.reload();};
 
