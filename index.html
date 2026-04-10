@@ -13,7 +13,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet"/>
   <style>
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-    :root{--accent:#9caf88;--accent-dark:#7a9068;--bg:#f5f4f0;--border:#dedad3;--muted:#9a9488;--heading:#2a2520}
+    :root{--accent:#9caf88;--bg:#f5f4f0;--border:#dedad3;--muted:#9a9488;--heading:#2a2520}
     body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px}
     .wrap{display:flex;flex-direction:column;align-items:center;gap:28px;width:100%;max-width:320px}
     .logo{width:220px;object-fit:contain}
@@ -21,10 +21,9 @@
     .google-btn{display:flex;align-items:center;gap:12px;background:var(--bg);border:1.5px solid var(--border);border-radius:12px;padding:14px 24px;font-family:'Noto Sans KR',sans-serif;font-size:0.95rem;font-weight:500;color:var(--heading);cursor:pointer;width:100%;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,0.07)}
     .google-btn:active{box-shadow:0 1px 3px rgba(0,0,0,0.1)}
     .google-icon{width:20px;height:20px;flex-shrink:0}
-    .error-msg{font-size:0.82rem;color:#c0392b;text-align:center;display:none;line-height:1.5}
-    .error-msg.show{display:block}
-    .loading{font-size:0.82rem;color:var(--muted);text-align:center;display:none}
-    .loading.show{display:block}
+    .msg{font-size:0.82rem;text-align:center;min-height:20px;line-height:1.5}
+    .msg.error{color:#c0392b}
+    .msg.info{color:var(--muted)}
   </style>
 </head>
 <body>
@@ -40,8 +39,7 @@
       </svg>
       Google로 로그인
     </button>
-    <p class="error-msg" id="err-msg"></p>
-    <p class="loading" id="loading-msg">확인 중...</p>
+    <p class="msg" id="msg"></p>
   </div>
 
   <script type="module">
@@ -62,15 +60,12 @@
     const auth = getAuth(app);
     const db   = getFirestore(app);
 
-    const btn     = document.getElementById('login-btn');
-    const errMsg  = document.getElementById('err-msg');
-    const loading = document.getElementById('loading-msg');
+    const btn = document.getElementById('login-btn');
+    const msg = document.getElementById('msg');
 
-    function showError(msg) {
-      errMsg.textContent = msg;
-      errMsg.classList.add('show');
-      loading.classList.remove('show');
-      btn.style.display = 'flex';
+    function setMsg(text, type='info') {
+      msg.textContent = text;
+      msg.className = 'msg ' + type;
     }
 
     async function checkAllowed(email) {
@@ -78,7 +73,7 @@
         const snap = await getDoc(doc(db, 'allowed_users', email));
         return snap.exists();
       } catch(e) {
-        console.error('check error:', e);
+        console.error('checkAllowed error:', e);
         return false;
       }
     }
@@ -86,25 +81,24 @@
     onAuthStateChanged(auth, async user => {
       if (!user) return;
       btn.style.display = 'none';
-      loading.classList.add('show');
-      errMsg.classList.remove('show');
-
-      const allowed = await checkAllowed(user.email);
-      if (allowed) {
+      setMsg('확인 중...', 'info');
+      const ok = await checkAllowed(user.email);
+      if (ok) {
         location.href = 'main.html';
       } else {
         await signOut(auth);
-        showError('접근 권한이 없어요.\n관리자에게 문의하세요.');
+        btn.style.display = 'flex';
+        setMsg('접근 권한이 없어요. 관리자에게 문의하세요.', 'error');
       }
     });
 
     btn.addEventListener('click', async () => {
-      errMsg.classList.remove('show');
+      msg.textContent = '';
       try {
         await signInWithPopup(auth, new GoogleAuthProvider());
       } catch(e) {
         if (e.code !== 'auth/popup-closed-by-user') {
-          showError('로그인 실패: ' + e.message);
+          setMsg('로그인 실패: ' + e.message, 'error');
         }
       }
     });
@@ -112,7 +106,7 @@
 
   <script>
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/app/sw.js').catch(()=>{});
+      navigator.serviceWorker.register('/app/sw.js').catch(() => {});
     }
   </script>
 </body>
