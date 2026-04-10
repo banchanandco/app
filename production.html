@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>생산 관리 — Banchan and Co</title>
+  <link rel="manifest" href="manifest.json"/>
+  <meta name="theme-color" content="#9caf88"/>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{--accent:#9caf88;--accent-dark:#7a9068;--accent-bg:#f0f5ec;--bg:#f5f4f0;--surface:#fff;--border:#dedad3;--subtle:#eceae5;--muted:#9a9488;--body:#4a4540;--heading:#2a2520;--warn:#e09020}
+    body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--body);min-height:100vh;padding-bottom:60px}
+    
+    header{background:var(--accent);color:#fff;padding:14px 16px;position:sticky;top:0;z-index:200;display:flex;align-items:center;gap:12px}
+    .back-btn{background:none;border:none;color:#fff;font-size:1.3rem;cursor:pointer}
+    header h1{font-size:1.05rem;font-weight:700}
+
+    .content{padding:16px;display:flex;flex-direction:column;gap:16px}
+    
+    .card{background:var(--surface);border-radius:16px;border:1px solid var(--border);padding:16px;display:flex;flex-direction:column;gap:12px}
+    .card h3{font-size:0.9rem;font-weight:700;color:var(--heading)}
+
+    .field-row{display:flex;flex-direction:column;gap:6px}
+    .field-label{font-size:0.75rem;color:var(--muted);font-weight:600}
+    .select-box, .input-box{width:100%;border:1px solid var(--border);background:var(--subtle);border-radius:10px;padding:12px;font-size:0.9rem;outline:none;font-family:inherit}
+    
+    .calc-btn{width:100%;padding:14px;border:none;border-radius:12px;background:var(--accent);color:#fff;font-weight:700;font-size:0.95rem;cursor:pointer;margin-top:8px}
+    .calc-btn:active{background:var(--accent-dark)}
+
+    .res-card{display:none}
+    .res-card.open{display:flex}
+    .res-item{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--subtle)}
+    .res-item:last-child{border-bottom:none}
+    .res-name{font-weight:600;font-size:0.88rem}
+    .res-vals{text-align:right}
+    .res-out{color:var(--warn);font-family:'DM Mono',monospace;font-weight:700;font-size:0.9rem}
+    .res-unit{font-size:0.75rem;color:var(--muted);margin-top:2px}
+    
+    #toast{position:fixed;bottom:20px;right:16px;background:var(--accent-dark);color:#fff;font-size:0.75rem;padding:8px 16px;border-radius:20px;opacity:0;transition:opacity .3s;z-index:999}
+  </style>
+</head>
+<body>
+
+<header>
+  <button class="back-btn" onclick="location.href='main.html'">‹</button>
+  <h1>🍲 요리 생산 차감 계산</h1>
+</header>
+
+<div class="content">
+  <div class="card">
+    <h3>레시피 선택</h3>
+    <div class="field-row">
+      <span class="field-label">레시피</span>
+      <select class="select-box" id="recipe-select">
+        <option value="">레시피를 선택하세요</option>
+      </select>
+    </div>
+    <div class="field-row">
+      <span class="field-label">생산 수량 (인분)</span>
+      <input class="input-box" id="produce-qty" type="number" placeholder="예: 50" min="1"/>
+    </div>
+    <button class="calc-btn" id="calc-btn">소모량 계산하기</button>
+  </div>
+
+  <div class="card res-card" id="result-card">
+    <h3>출고 예정 내역 (입고 단위 환산)</h3>
+    <div id="result-list"></div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, collection, getDocs, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const app = initializeApp({
+  apiKey:"AIzaSyArW3yhj81OJpOkCEYfyaelgcdo8o_IAPw",
+  authDomain:"banchan-inventory-144bd.firebaseapp.com",
+  projectId:"banchan-inventory-144bd",
+  storageBucket:"banchan-inventory-144bd.firebasestorage.app",
+  messagingSenderId:"1022526862273",
+  appId:"1:1022526862273:web:12a025d9db24c7c6b83540"
+});
+const db = getFirestore(app);
+
+let recipes = [];
+let conversions = {};
+
+async function init() {
+  // 1. 레시피 로드
+  const rSnap = await getDocs(collection(db, 'recipes'));
+  recipes = rSnap.docs.map(d => ({id: d.id, ...d.data()}));
+  const sel = document.getElementById('recipe-select');
+  recipes.sort((a,b)=>a.name.localeCompare(b.name,'ko')).forEach(r => {
+    sel.innerHTML += `<option value="${r.id}">${r.name} (기준: ${r.serving}인분)</option>`;
+  });
+
+  // 2. 모든 카테고리 변환 데이터 로드
+  const categories = ['food', 'container', 'misc', 'clean', 'other'];
+  for(const cat of categories) {
+    const cSnap = await getDoc(doc(db, 'item_conversions', cat));
+    if(cSnap.exists()) conversions[cat] = cSnap.data();
+  }
+}
+
+function showToast(msg){const el=document.getElementById('toast');el.textContent=msg;el.style.opacity='1';setTimeout(()=>el.style.opacity='0',2000);}
+
+document.getElementById('calc-btn').addEventListener('click', () => {
+  const rid = document.getElementById('recipe-select').value;
+  const pQty = parseFloat(document.getElementById('produce-qty').value);
+  if(!rid || !pQty) { showToast('레시피와 수량을 입력하세요'); return; }
+
+  const recipe = recipes.find(r => r.id === rid);
+  const ratio = pQty / (parseFloat(recipe.serving) || 1);
+  const resList = document.getElementById('result-list');
+  resList.innerHTML = '';
+
+  recipe.ingredients.forEach(ing => {
+    const needAmt = parseFloat(ing.amount) * ratio; // 필요한 실사용량 (예: 15lb)
+    
+    // 변환 비율 찾기 (모든 카테고리 뒤짐)
+    let conv = null;
+    for(const cat in conversions) {
+      if(conversions[cat][ing.name]) { conv = conversions[cat][ing.name]; break; }
+    }
+
+    let displayOut = `${needAmt.toFixed(2)} ${ing.unit}`;
+    let boxVal = "";
+
+    if(conv && conv.ratio) {
+      const outInBox = needAmt / conv.ratio; // 입고 단위로 환산 (예: 15lb / 30lb = 0.5 box)
+      boxVal = `→ 약 ${outInBox.toFixed(2)} ${conv.inUnit} 차감 예정`;
+    }
+
+    const item = document.createElement('div');
+    item.className = 'res-item';
+    item.innerHTML = `
+      <div class="res-name">${ing.name}</div>
+      <div class="res-vals">
+        <div class="res-out">${displayOut} 소모</div>
+        <div class="res-unit">${boxVal}</div>
+      </div>
+    `;
+    resList.appendChild(item);
+  });
+
+  document.getElementById('result-card').classList.add('open');
+});
+
+init();
+</script>
+</body>
+</html>
