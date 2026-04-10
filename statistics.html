@@ -151,6 +151,9 @@ let currentPeriod = 'day';
 let currentView   = 'inbound';
 
 // ── Auth ──────────────────────────────────────────────
+const loadedSecs = new Set();
+let firestoreStarted = false;
+
 onAuthStateChanged(auth, user => {
   if (!user) { location.href='index.html'; return; }
   document.getElementById('header-avatar').src = user.photoURL||'';
@@ -158,16 +161,18 @@ onAuthStateChanged(auth, user => {
   document.getElementById('drawer-name').textContent  = user.displayName||'';
   document.getElementById('drawer-email').textContent = user.email||'';
 
-  const loadedSecs = new Set();
+  if (firestoreStarted) return;
+  firestoreStarted = true;
+
   SECTIONS.forEach(sec => {
     const q = query(collection(db, `inv_${sec.id}`), orderBy('createdAt'));
     onSnapshot(q, snap => {
       cache[sec.id] = snap.docs.map(d => ({id:d.id,...d.data()}));
       loadedSecs.add(sec.id);
-      if (loadedSecs.size >= SECTIONS.length) render();
+      render();
     }, () => {
       loadedSecs.add(sec.id);
-      if (loadedSecs.size >= SECTIONS.length) render();
+      render();
     });
   });
 });
