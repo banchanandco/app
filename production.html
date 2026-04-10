@@ -6,6 +6,9 @@
   <title>생산 관리 — Banchan and Co</title>
   <link rel="manifest" href="manifest.json"/>
   <meta name="theme-color" content="#9caf88"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="default"/>
+  <link rel="apple-touch-icon" href="icons/icon-192.png"/>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
   <style>
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -22,19 +25,16 @@
     .select-box, .input-box{width:100%;border:1px solid var(--border);background:var(--subtle);border-radius:10px;padding:12px;font-size:0.9rem;outline:none;font-family:inherit}
     .calc-btn{width:100%;padding:14px;border:none;border-radius:12px;background:var(--accent);color:#fff;font-weight:700;font-size:0.95rem;cursor:pointer;margin-top:8px}
     .calc-btn:active{background:var(--accent-dark)}
-    
-    /* 복사 버튼 스타일 */
     .copy-btn{width:100%;padding:10px;border:1.5px solid var(--accent);border-radius:10px;background:transparent;color:var(--accent-dark);font-weight:700;font-size:0.85rem;cursor:pointer;margin-top:4px;display:none}
     .copy-btn.show{display:block}
-
     .res-card{display:none}
     .res-card.open{display:flex}
     .res-item{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--subtle)}
     .res-item:last-child{border-bottom:none}
-    .res-name{font-weight:600;font-size:0.88rem}
+    .res-name{font-weight:600;font-size:0.88rem;flex:1}
     .res-vals{text-align:right}
     .res-out{color:var(--warn);font-family:'DM Mono',monospace;font-weight:700;font-size:0.9rem}
-    .res-unit{font-size:0.75rem;color:var(--muted);margin-top:2px}
+    .res-unit{font-size:0.72rem;color:var(--muted);margin-top:2px}
     #toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.8);color:#fff;font-size:0.8rem;padding:10px 20px;border-radius:25px;opacity:0;transition:opacity .3s;z-index:999;white-space:nowrap;pointer-events:none}
   </style>
 </head>
@@ -47,10 +47,10 @@
 
 <div class="content">
   <div class="card">
-    <h3>레시피 선택</h3>
+    <h3>생산 설정</h3>
     <div class="field-row">
       <span class="field-label">레시피</span>
-      <select class="select-box" id="recipe-select"><option value="">로딩 중...</option></select>
+      <select class="select-box" id="recipe-select"><option value="">레시피 로딩 중...</option></select>
     </div>
     <div class="field-row">
       <span class="field-label">생산 수량 (인분)</span>
@@ -86,7 +86,7 @@ const db = getFirestore(app);
 
 let recipes = [];
 let conversions = {};
-let lastResultText = ""; // 복사용 텍스트 저장
+let lastResultText = "";
 
 onAuthStateChanged(auth, user => {
   if (user) initData();
@@ -94,21 +94,34 @@ onAuthStateChanged(auth, user => {
 });
 
 async function initData() {
-  const rSnap = await getDocs(collection(db, 'recipes'));
-  recipes = rSnap.docs.map(d => ({id: d.id, ...d.data()}));
-  const sel = document.getElementById('recipe-select');
-  sel.innerHTML = '<option value="">레시피 선택</option>';
-  recipes.sort((a,b)=>a.name.localeCompare(b.name,'ko')).forEach(r => {
-    sel.innerHTML += `<option value="${r.id}">${r.name} (${r.serving}인분 기준)</option>`;
-  });
-  const categories = ['food', 'container', 'misc', 'clean', 'other'];
-  for(const cat of categories) {
-    const cSnap = await getDoc(doc(db, 'item_conversions', cat));
-    if(cSnap.exists()) conversions[cat] = cSnap.data();
-  }
+  try {
+    const rSnap = await getDocs(collection(db, 'recipes'));
+    recipes = rSnap.docs.map(d => ({id: d.id, ...d.data()}));
+    const sel = document.getElementById('recipe-select');
+    sel.innerHTML = '<option value="">레시피 선택</option>';
+    recipes.sort((a,b)=>a.name.localeCompare(b.name,'ko')).forEach(r => {
+      sel.innerHTML += `<option value="${r.id}">${r.name} (${r.serving}인분 기준)</option>`;
+    });
+    const categories = ['food', 'container', 'misc', 'clean', 'other'];
+    for(const cat of categories) {
+      const cSnap = await getDoc(doc(db, 'item_conversions', cat));
+      if(cSnap.exists()) conversions[cat] = cSnap.data();
+    }
+  } catch(e) { console.error(e); showToast("데이터 로드 실패"); }
 }
 
 function showToast(msg){const el=document.getElementById('toast');el.textContent=msg;el.style.opacity='1';setTimeout(()=>el.style.opacity='0',2000);}
+
+// 단위 자동 변환 로직 (1000g -> 1kg, 1000ml -> 1l)
+function formatUnit(amt, unit) {
+  let v = parseFloat(amt);
+  let u = (unit || '').toLowerCase();
+  if (u === 'g' && v >= 1000) { v /= 1000; u = 'kg'; }
+  else if ((u === 'ml' || u === 'cc') && v >= 1000) { v /= 1000; u = 'l'; }
+
+  if (u === 'kg' || u === 'l') return v.toFixed(2) + u;
+  return (Number.isInteger(v) ? v : v.toFixed(1)) + unit;
+}
 
 document.getElementById('calc-btn').addEventListener('click', () => {
   const rid = document.getElementById('recipe-select').value;
@@ -125,23 +138,24 @@ document.getElementById('calc-btn').addEventListener('click', () => {
   recipe.ingredients.forEach(ing => {
     const needAmt = parseFloat(ing.amount) * ratio;
     let conv = null;
-    for(const cat in conversions) { if(conversions[cat][ing.name]) { conv = conversions[cat][ing.name]; break; } }
+    for(const cat in conversions) { if(conversions[cat] && conversions[cat][ing.name]) { conv = conversions[cat][ing.name]; break; } }
 
+    const formattedOut = formatUnit(needAmt, ing.unit);
     let boxLine = "";
     if(conv && conv.ratio) {
       const outInBox = needAmt / conv.ratio;
-      boxLine = ` (약 ${outInBox.toFixed(2)} ${conv.inUnit})`;
+      boxLine = `(약 ${outInBox.toFixed(2)} ${conv.inUnit})`;
     }
 
-    copyText += `- ${ing.name}: ${needAmt.toFixed(2)}${ing.unit}${boxLine}\n`;
+    copyText += `- ${ing.name}: ${formattedOut} ${boxLine}\n`;
 
     const item = document.createElement('div');
     item.className = 'res-item';
     item.innerHTML = `
       <div class="res-name">${ing.name}</div>
       <div class="res-vals">
-        <div class="res-out">${needAmt.toFixed(2)} ${ing.unit}</div>
-        <div class="res-unit">${boxLine ? '→ '+boxLine : ''}</div>
+        <div class="res-out">${formattedOut} 소모</div>
+        <div class="res-unit">${boxLine ? '→ '+boxLine+' 차감 예정' : ''}</div>
       </div>
     `;
     resList.appendChild(item);
@@ -152,14 +166,11 @@ document.getElementById('calc-btn').addEventListener('click', () => {
   document.getElementById('copy-btn').classList.add('show');
 });
 
-// 복사 기능
 document.getElementById('copy-btn').addEventListener('click', () => {
   if(!lastResultText) return;
   navigator.clipboard.writeText(lastResultText).then(() => {
-    showToast('복사되었습니다! 필요한 곳에 붙여넣으세요.');
-  }).catch(() => {
-    showToast('복사 실패. 수동으로 복사해주세요.');
-  });
+    showToast('복사되었습니다!');
+  }).catch(() => showToast('복사 실패'));
 });
 </script>
 </body>
