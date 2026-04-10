@@ -112,7 +112,7 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { getFirestore, collection, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getFirestore, collection, onSnapshot, query, orderBy, getDoc, doc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const app = initializeApp({
   apiKey:"AIzaSyArW3yhj81OJpOkCEYfyaelgcdo8o_IAPw",
@@ -134,9 +134,10 @@ const SECTIONS = [
 ];
 
 let cache = {};
+let conversions = {};
 let curSec = 'inbound';
 let curPeriod = 'day';
-let expandedId = null; // 현재 펼쳐진 카테고리 ID
+let expandedId = null;
 
 // Drawer & UI
 document.getElementById('hamburger-btn').onclick=()=>{document.getElementById('drawer').classList.add('open');document.getElementById('drawer-overlay').classList.add('open');};
@@ -160,10 +161,18 @@ onAuthStateChanged(auth, user => {
   document.getElementById('drawer-avatar').src  = user.photoURL||'';
   document.getElementById('drawer-name').textContent  = user.displayName||'';
   document.getElementById('drawer-email').textContent = user.email||'';
-  startDataSync();
+  initData();
 });
 
-function startDataSync() {
+async function initData() {
+  // Load conversions first
+  for(const sec of SECTIONS){
+    const convRef = doc(db, 'item_conversions', sec.id);
+    const snap = await getDoc(convRef);
+    if(snap.exists()) conversions[sec.id] = snap.data();
+  }
+  
+  // Start data sync
   SECTIONS.forEach(sec => {
     onSnapshot(query(collection(db, 'inv_'+sec.id), orderBy('createdAt')), snap => {
       cache[sec.id] = snap.docs.map(d=>({id:d.id,...d.data()}));
@@ -182,7 +191,24 @@ function getRange() {
 }
 
 function fmt(n){if(!n && n!==0)return '0';const v=parseFloat(n);return Number.isInteger(v)?v:v.toFixed(1);}
-function getPct(i){const r=(i.remaining!==undefined)?i.remaining:i.qty;return i.qty>0?(r/i.qty)*100:0;}
+
+// Get input unit value (e.g., box count)
+function getInputVal(item, secId) {
+  const conv = conversions[secId] && conversions[secId][item.name];
+  if (conv && item.inboundQty) {
+    return { qty: item.inboundQty, unit: item.inboundUnit };
+  }
+  const r = (item.remaining !== undefined) ? item.remaining : item.qty;
+  return { qty: r, unit: item.unit };
+}
+
+// Get percentage based on original input amount
+function getPct(item, secId) {
+  const conv = conversions[secId] && conversions[secId][item.name];
+  const total = item.qty || 0;
+  const rem = (item.remaining !== undefined) ? item.remaining : total;
+  return total > 0 ? (rem / total) * 100 : 0;
+}
 
 function render() {
   const ct = document.getElementById('content');
@@ -193,7 +219,6 @@ function render() {
   else renderOutbound(ct, range);
 }
 
-// UI Creators
 function mkGrid(a,b,c){
   const g=document.createElement('div');g.className='sum-grid';
   [a,b,c].forEach(x=>{
@@ -217,21 +242,23 @@ function mkRow(name,val,cls){
   r.innerHTML=`<span class="list-name">${name}</span><span class="list-val ${cls||'ok'}">${val}</span>`; return r;
 }
 
-// Tab Renders
 function renderInbound(ct, range) {
   const all = SECTIONS.flatMap(s=>(cache[s.id]||[]).filter(i=>i.createdAt>=range.s && i.createdAt<=range.e).map(i=>({...i,sec:s})));
-  const total = all.reduce((a,i)=>a+(parseFloat(i.qty)||0),0);
+  const total = all.reduce((a,i)=>a+(parseFloat(getInputVal(i, i.sec.id).qty)||0),0);
   ct.appendChild(mkGrid({v:all.length,l:'입고 건수'},{v:fmt(total),l:'총 입고량'},{v:new Set(all.map(i=>i.sec.id)).size,l:'카테고리'}));
   
   const card = mkCard('카테고리별 입고 (클릭 시 상세)');
   SECTIONS.forEach(s=>{
     const its = all.filter(i=>i.sec.id===s.id);
     if(!its.length) return;
-    const sQty = its.reduce((a,i)=>a+(parseFloat(i.qty)||0),0);
+    const sQty = its.reduce((a,i)=>a+(parseFloat(getInputVal(i, s.id).qty)||0),0);
     card.appendChild(mkBar(s, `${s.icon} ${s.label}`, `${its.length}건 · ${fmt(sQty)}`, (sQty/(total||1))*100, 'in'));
     if(expandedId===s.id){
       const list = document.createElement('div'); list.className='detail-list';
-      its.sort((a,b)=>b.createdAt - a.createdAt).forEach(i=>list.appendChild(mkRow(i.name, `${fmt(i.qty)} ${i.unit}`)));
+      its.sort((a,b)=>b.createdAt - a.createdAt).forEach(i=>{
+        const data = getInputVal(i, s.id);
+        list.appendChild(mkRow(i.name, `${fmt(data.qty)} ${data.unit}`));
+      });
       card.appendChild(list);
     }
   });
@@ -241,21 +268,22 @@ function renderInbound(ct, range) {
 
 function renderStock(ct) {
   const all = SECTIONS.flatMap(s=>(cache[s.id]||[]).map(i=>({...i,sec:s})));
-  const warn = all.filter(i=> {const p=getPct(i); return p>15 && p<=40;}).length;
-  const urgent = all.filter(i=> getPct(i)<=15).length;
+  const warn = all.filter(i=> {const p=getPct(i, i.sec.id); return p>15 && p<=40;}).length;
+  const urgent = all.filter(i=> getPct(i, i.sec.id)<=15).length;
   ct.appendChild(mkGrid({v:all.length,l:'전체 품목'},{v:warn,l:'주문 요망',cls:'warn'},{v:urgent,l:'긴급 주문',cls:'urgent'}));
   
   const card = mkCard('평균 재고율 (클릭 시 상세)');
   SECTIONS.forEach(s=>{
     const its = cache[s.id]||[];
     if(!its.length) return;
-    const avg = its.reduce((a,i)=>a+getPct(i),0)/its.length;
+    const avg = its.reduce((a,i)=>a+getPct(i, s.id),0)/its.length;
     card.appendChild(mkBar(s, `${s.icon} ${s.label}`, `${its.length}개 · 평균 ${avg.toFixed(0)}%`, avg, 'stock'));
     if(expandedId===s.id){
       const list = document.createElement('div'); list.className='detail-list';
-      its.sort((a,b)=>getPct(a)-getPct(b)).forEach(i=>{
-        const p=getPct(i); const r=(i.remaining!==undefined)?i.remaining:i.qty;
-        list.appendChild(mkRow(i.name, `${fmt(r)}/${fmt(i.qty)} (${p.toFixed(0)}%)`, p<=15?'urgent':p<=40?'warn':'ok'));
+      its.sort((a,b)=>getPct(a, s.id)-getPct(b, s.id)).forEach(i=>{
+        const p=getPct(i, s.id); 
+        const data = getInputVal(i, s.id);
+        list.appendChild(mkRow(i.name, `${fmt(data.qty)} ${data.unit} (${p.toFixed(0)}%)`, p<=15?'urgent':p<=40?'warn':'ok'));
       });
       card.appendChild(list);
     }
@@ -265,21 +293,31 @@ function renderStock(ct) {
 
 function renderOutbound(ct, range) {
   const all = SECTIONS.flatMap(s=>(cache[s.id]||[]).filter(i=>i.createdAt>=range.s && i.createdAt<=range.e).map(i=>{
-    const r=(i.remaining!==undefined)?i.remaining:i.qty;
-    return {...i, outQty:Math.max(0, i.qty-r), sec:s};
-  })).filter(i=>i.outQty>0);
-  const total = all.reduce((a,i)=>a+i.outQty,0);
+    const rem = (i.remaining !== undefined) ? i.remaining : i.qty;
+    const outRaw = Math.max(0, i.qty - rem);
+    // Calculate out qty in input unit
+    const conv = conversions[s.id] && conversions[s.id][i.name];
+    let outVal = outRaw;
+    let unit = i.unit;
+    if (conv && i.inboundQty) {
+      outVal = outRaw / (conv.ratio || 1);
+      unit = i.inboundUnit;
+    }
+    return {...i, outVal, outUnit: unit, sec:s};
+  })).filter(i=>i.outVal>0);
+  
+  const total = all.reduce((a,i)=>a+i.outVal,0);
   ct.appendChild(mkGrid({v:all.length,l:'출고 품목'},{v:fmt(total),l:'총 출고량'},{v:new Set(all.map(i=>i.sec.id)).size,l:'카테고리'}));
   
   const card = mkCard('카테고리별 출고 (클릭 시 상세)');
   SECTIONS.forEach(s=>{
     const its = all.filter(i=>i.sec.id===s.id);
     if(!its.length) return;
-    const sQty = its.reduce((a,i)=>a+i.outQty,0);
+    const sQty = its.reduce((a,i)=>a+i.outVal,0);
     card.appendChild(mkBar(s, `${s.icon} ${s.label}`, `${its.length}종 · 총 ${fmt(sQty)}`, (sQty/(total||1))*100, 'out'));
     if(expandedId===s.id){
       const list = document.createElement('div'); list.className='detail-list';
-      its.sort((a,b)=>b.outQty - a.outQty).forEach(i=>list.appendChild(mkRow(i.name, `${fmt(i.outQty)} ${i.unit} 출고`, 'warn')));
+      its.sort((a,b)=>b.outVal - a.outVal).forEach(i=>list.appendChild(mkRow(i.name, `${fmt(i.outVal)} ${i.outUnit} 사용`, 'warn')));
       card.appendChild(list);
     }
   });
