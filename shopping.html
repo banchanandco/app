@@ -18,8 +18,6 @@
       --muted:#9a9488;--body:#4a4540;--heading:#2a2520;
     }
     body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--body);min-height:100vh;padding-bottom:80px}
-
-    /* HEADER */
     header{background:var(--accent);color:#fff;padding:14px 16px;position:sticky;top:0;z-index:200;display:flex;align-items:center;justify-content:space-between}
     .header-left{display:flex;align-items:center;gap:10px}
     .hamburger{background:none;border:none;cursor:pointer;padding:4px;display:flex;flex-direction:column;gap:5px}
@@ -27,8 +25,6 @@
     .back-btn{background:none;border:none;color:#fff;font-size:1.3rem;cursor:pointer;line-height:1}
     header h1{font-size:1.05rem;font-weight:700;color:#fff}
     .user-avatar{width:28px;height:28px;border-radius:50%;border:2px solid rgba(255,255,255,0.4);object-fit:cover}
-
-    /* DRAWER */
     .drawer-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.35);z-index:300;opacity:0;pointer-events:none;transition:opacity .25s}
     .drawer-overlay.open{opacity:1;pointer-events:all}
     .drawer{position:fixed;left:-280px;top:0;bottom:0;width:280px;background:var(--surface);z-index:301;transition:left .25s;display:flex;flex-direction:column;box-shadow:4px 0 20px rgba(0,0,0,0.12)}
@@ -44,70 +40,86 @@
     .drawer-item .di-icon{font-size:1.2rem}
     .drawer-logout{margin:0 16px 20px;padding:12px;border:1.5px solid var(--border);border-radius:10px;background:transparent;font-family:'Noto Sans KR',sans-serif;font-size:0.85rem;color:var(--muted);cursor:pointer;width:calc(100% - 32px)}
 
-    /* TABS */
     .tab-bar{display:flex;background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:53px;z-index:100}
     .tab-btn{flex:1;padding:13px 6px;border:none;background:transparent;font-family:'Noto Sans KR',sans-serif;font-size:0.85rem;font-weight:600;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent}
     .tab-btn.active{color:var(--accent-dark);border-bottom-color:var(--accent)}
-
-    /* CONTENT */
     .tab-view{display:none;padding:14px;flex-direction:column;gap:10px}
     .tab-view.active{display:flex}
 
-    /* ADD ROW */
+    /* SHOPPING */
     .add-row{display:flex;gap:8px;align-items:center}
     .add-input{flex:1;border:1px solid var(--border);outline:none;font-family:'Noto Sans KR',sans-serif;font-size:0.88rem;color:var(--body);background:var(--surface);border-radius:10px;padding:11px 14px}
     .add-input:focus{border-color:var(--accent)}
     .add-btn{width:42px;height:42px;border:none;border-radius:10px;background:var(--accent);color:#fff;font-size:1.4rem;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
     .add-btn:active{background:var(--accent-dark)}
-
-    /* SHOPPING LIST CARD */
     .list-card{background:var(--surface);border-radius:14px;border:1px solid var(--border);overflow:hidden}
     .list-section-hdr{padding:9px 16px;font-size:0.72rem;font-weight:700;color:var(--muted);background:var(--subtle);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
     .clear-done-btn{font-size:0.7rem;color:var(--muted);background:none;border:none;cursor:pointer;text-decoration:underline;font-family:'Noto Sans KR',sans-serif}
-    .clear-done-btn:active{color:#c0392b}
-
-    /* ITEM ROW */
     .item-row{display:flex;align-items:flex-start;gap:12px;padding:12px 14px;border-bottom:1px solid var(--subtle);transition:opacity .2s}
     .item-row:last-child{border-bottom:none}
     .item-row.done{opacity:0.5}
-
-    /* CHECKBOX */
     .check-wrap{padding-top:2px;flex-shrink:0}
     .checkbox{width:22px;height:22px;border-radius:50%;border:2px solid var(--border);background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .2s;-webkit-tap-highlight-color:transparent}
     .checkbox.checked{background:var(--accent);border-color:var(--accent)}
     .checkbox.checked::after{content:'✓';color:#fff;font-size:0.8rem;font-weight:700}
-
-    /* ITEM CONTENT */
     .item-content{flex:1;min-width:0}
     .item-name{font-size:0.9rem;font-weight:600;color:var(--heading);line-height:1.4}
     .item-name.done{text-decoration:line-through;color:var(--muted)}
     .item-meta{font-size:0.68rem;color:var(--muted);margin-top:3px;display:flex;gap:8px;flex-wrap:wrap}
-
-    /* ITEM ACTIONS */
     .item-actions{display:flex;gap:4px;flex-shrink:0}
     .item-edit{width:26px;height:26px;border-radius:50%;border:1.5px solid var(--border);background:var(--surface);color:var(--muted);font-size:0.75rem;cursor:pointer;display:flex;align-items:center;justify-content:center}
     .item-del{width:26px;height:26px;border-radius:50%;border:none;background:transparent;color:var(--muted);font-size:0.82rem;cursor:pointer;display:flex;align-items:center;justify-content:center}
     .item-del:active{color:#c0392b}
-
     .empty-msg{padding:28px;text-align:center;color:var(--muted);font-size:0.82rem}
 
-    /* MEMO TAB */
-    .memo-card{background:var(--surface);border-radius:14px;border:1px solid var(--border);overflow:hidden}
-    .memo-hdr{padding:11px 16px;border-bottom:1px solid var(--subtle);font-size:0.82rem;font-weight:700;color:var(--heading);display:flex;align-items:center;justify-content:space-between}
-    .memo-save-badge{font-size:0.7rem;color:var(--muted);font-weight:400}
-    .memo-textarea{width:100%;min-height:60vh;border:none;outline:none;font-family:'Noto Sans KR',sans-serif;font-size:0.9rem;color:var(--body);padding:14px 16px;resize:none;background:transparent;line-height:1.7}
+    /* MEMO */
+    .memo-compose{background:var(--surface);border-radius:14px;border:1px solid var(--border);overflow:hidden}
+    .memo-compose-hdr{padding:11px 16px;border-bottom:1px solid var(--subtle);font-size:0.82rem;font-weight:700;color:var(--heading)}
+    .memo-title-input{width:100%;border:none;border-bottom:1px solid var(--subtle);outline:none;font-family:'Noto Sans KR',sans-serif;font-size:0.92rem;font-weight:700;color:var(--heading);padding:12px 16px;background:transparent}
+    .memo-title-input::placeholder{color:var(--muted);font-weight:400}
+    .memo-body-input{width:100%;border:none;outline:none;font-family:'Noto Sans KR',sans-serif;font-size:0.88rem;color:var(--body);padding:12px 16px;resize:none;min-height:100px;background:transparent;line-height:1.7}
+    .memo-save-row{padding:10px 14px;border-top:1px solid var(--subtle);display:flex;justify-content:flex-end}
+    .memo-save-btn{padding:8px 20px;border:none;border-radius:8px;background:var(--accent);color:#fff;font-family:'Noto Sans KR',sans-serif;font-size:0.85rem;font-weight:600;cursor:pointer}
+    .memo-save-btn:active{background:var(--accent-dark)}
 
-    /* EDIT SHEET */
+    /* MEMO CARDS */
+    .memo-card{background:var(--surface);border-radius:14px;border:1px solid var(--border);overflow:hidden;cursor:pointer;-webkit-tap-highlight-color:transparent}
+    .memo-card:active{border-color:var(--accent)}
+    .memo-card-title{font-size:0.92rem;font-weight:700;color:var(--heading);padding:13px 16px 6px}
+    .memo-card-body{font-size:0.82rem;color:var(--body);padding:0 16px 6px;line-height:1.6;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;white-space:pre-wrap}
+    .memo-card-meta{font-size:0.68rem;color:var(--muted);padding:6px 16px 12px;display:flex;gap:10px;border-top:1px solid var(--subtle);margin-top:4px}
+    .memo-card-actions{display:flex;gap:6px;padding:0 12px 10px;justify-content:flex-end}
+    .memo-action-btn{padding:5px 12px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface);font-family:'Noto Sans KR',sans-serif;font-size:0.75rem;color:var(--muted);cursor:pointer}
+    .memo-action-btn.del{border-color:transparent;color:#c0392b}
+
+    /* DETAIL SHEET */
     .sheet-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:400;opacity:0;pointer-events:none;transition:opacity .25s}
     .sheet-overlay.open{opacity:1;pointer-events:all}
-    .sheet{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-radius:22px 22px 0 0;z-index:401;padding:20px 16px 40px;transform:translateY(100%);transition:transform .3s ease}
+    .sheet{position:fixed;inset:0;background:var(--bg);z-index:401;transform:translateY(100%);transition:transform .3s ease;overflow-y:auto}
     .sheet.open{transform:translateY(0)}
-    .sheet-handle{width:40px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 16px}
-    .sheet-title{font-size:0.95rem;font-weight:700;color:var(--heading);margin-bottom:14px}
-    .sheet-input{width:100%;border:1px solid var(--border);outline:none;font-family:'Noto Sans KR',sans-serif;font-size:0.88rem;color:var(--body);background:var(--subtle);border-radius:8px;padding:10px 12px;margin-bottom:10px}
-    .sheet-input:focus{border-color:var(--accent)}
-    .sheet-save{width:100%;padding:12px;border:none;border-radius:12px;background:var(--accent);color:#fff;font-family:'Noto Sans KR',sans-serif;font-size:0.9rem;font-weight:700;cursor:pointer}
-    .sheet-save:active{background:var(--accent-dark)}
+    .sheet-header{background:var(--accent);color:#fff;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0}
+    .sheet-close{background:rgba(255,255,255,0.2);border:none;color:#fff;font-family:'Noto Sans KR',sans-serif;font-size:0.8rem;border-radius:8px;padding:6px 12px;cursor:pointer}
+    .sheet-body{padding:20px 16px;display:flex;flex-direction:column;gap:12px}
+    .sheet-detail-title{font-size:1.1rem;font-weight:700;color:var(--heading);line-height:1.4}
+    .sheet-detail-body{font-size:0.9rem;color:var(--body);line-height:1.8;white-space:pre-wrap}
+    .sheet-detail-meta{font-size:0.72rem;color:var(--muted)}
+    .sheet-actions{display:flex;gap:8px}
+    .sheet-edit-btn{flex:1;padding:11px;border:1.5px solid var(--border);border-radius:10px;background:var(--surface);font-family:'Noto Sans KR',sans-serif;font-size:0.88rem;color:var(--body);cursor:pointer}
+    .sheet-del-btn{flex:1;padding:11px;border:none;border-radius:10px;background:#fdf0f0;font-family:'Noto Sans KR',sans-serif;font-size:0.88rem;color:#c0392b;cursor:pointer}
+
+    /* EDIT SHEET (item + memo) */
+    .edit-sheet-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:500;opacity:0;pointer-events:none;transition:opacity .25s}
+    .edit-sheet-overlay.open{opacity:1;pointer-events:all}
+    .edit-sheet{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-radius:22px 22px 0 0;z-index:501;padding:20px 16px 40px;transform:translateY(100%);transition:transform .3s ease}
+    .edit-sheet.open{transform:translateY(0)}
+    .edit-handle{width:40px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 16px}
+    .edit-title{font-size:0.95rem;font-weight:700;color:var(--heading);margin-bottom:14px}
+    .edit-input{width:100%;border:1px solid var(--border);outline:none;font-family:'Noto Sans KR',sans-serif;font-size:0.88rem;color:var(--body);background:var(--subtle);border-radius:8px;padding:10px 12px;margin-bottom:8px}
+    .edit-input:focus{border-color:var(--accent)}
+    .edit-textarea{width:100%;border:1px solid var(--border);outline:none;font-family:'Noto Sans KR',sans-serif;font-size:0.88rem;color:var(--body);background:var(--subtle);border-radius:8px;padding:10px 12px;min-height:120px;resize:vertical;line-height:1.6;margin-bottom:8px}
+    .edit-textarea:focus{border-color:var(--accent)}
+    .edit-save{width:100%;padding:12px;border:none;border-radius:12px;background:var(--accent);color:#fff;font-family:'Noto Sans KR',sans-serif;font-size:0.9rem;font-weight:700;cursor:pointer}
+    .edit-save:active{background:var(--accent-dark)}
 
     #toast{position:fixed;bottom:20px;right:16px;background:var(--accent-dark);color:#fff;font-size:0.75rem;padding:7px 14px;border-radius:20px;opacity:0;transition:opacity .3s;z-index:999;pointer-events:none}
   </style>
@@ -138,7 +150,7 @@
   <div class="header-left">
     <button class="hamburger" id="hamburger-btn"><span></span><span></span><span></span></button>
     <button class="back-btn" onclick="location.href='main.html'">‹</button>
-    <h1>🛍 쇼핑 리스트</h1>
+    <h1>🛍 쇼핑 & 메모</h1>
   </div>
   <div class="header-right">
     <img class="user-avatar" id="header-avatar" src="" alt=""/>
@@ -161,22 +173,54 @@
 
 <!-- MEMO TAB -->
 <div class="tab-view" id="tab-memo">
-  <div class="memo-card">
-    <div class="memo-hdr">
-      <span>메모</span>
-      <span class="memo-save-badge" id="memo-status">자동 저장됨</span>
+  <!-- Compose -->
+  <div class="memo-compose">
+    <div class="memo-compose-hdr">새 메모</div>
+    <input class="memo-title-input" id="memo-title-input" placeholder="제목" maxlength="50"/>
+    <textarea class="memo-body-input" id="memo-body-input" placeholder="내용을 입력하세요..."></textarea>
+    <div class="memo-save-row">
+      <button class="memo-save-btn" id="memo-save-btn">저장</button>
     </div>
-    <textarea class="memo-textarea" id="memo-textarea" placeholder="여기에 자유롭게 메모하세요..."></textarea>
+  </div>
+  <!-- Memo list -->
+  <div id="memo-list"></div>
+</div>
+
+<!-- MEMO DETAIL SHEET -->
+<div class="sheet-overlay" id="detail-overlay"></div>
+<div class="sheet" id="detail-sheet">
+  <div class="sheet-header">
+    <span style="font-size:1rem;font-weight:700">메모</span>
+    <button class="sheet-close" id="detail-close">닫기</button>
+  </div>
+  <div class="sheet-body">
+    <div class="sheet-detail-title" id="detail-title"></div>
+    <div class="sheet-detail-body" id="detail-body"></div>
+    <div class="sheet-detail-meta" id="detail-meta"></div>
+    <div class="sheet-actions">
+      <button class="sheet-edit-btn" id="detail-edit-btn">✏️ 수정</button>
+      <button class="sheet-del-btn" id="detail-del-btn">🗑 삭제</button>
+    </div>
   </div>
 </div>
 
-<!-- EDIT SHEET -->
-<div class="sheet-overlay" id="edit-overlay"></div>
-<div class="sheet" id="edit-sheet">
-  <div class="sheet-handle"></div>
-  <div class="sheet-title">아이템 수정</div>
-  <input class="sheet-input" id="edit-input" placeholder="아이템 이름"/>
-  <button class="sheet-save" id="edit-save">저장하기</button>
+<!-- ITEM EDIT SHEET -->
+<div class="edit-sheet-overlay" id="item-edit-overlay"></div>
+<div class="edit-sheet" id="item-edit-sheet">
+  <div class="edit-handle"></div>
+  <div class="edit-title">아이템 수정</div>
+  <input class="edit-input" id="item-edit-input" placeholder="아이템 이름"/>
+  <button class="edit-save" id="item-edit-save">저장하기</button>
+</div>
+
+<!-- MEMO EDIT SHEET -->
+<div class="edit-sheet-overlay" id="memo-edit-overlay"></div>
+<div class="edit-sheet" id="memo-edit-sheet">
+  <div class="edit-handle"></div>
+  <div class="edit-title">메모 수정</div>
+  <input class="edit-input" id="memo-edit-title" placeholder="제목" maxlength="50"/>
+  <textarea class="edit-textarea" id="memo-edit-body" placeholder="내용"></textarea>
+  <button class="edit-save" id="memo-edit-save">저장하기</button>
 </div>
 
 <div id="toast"></div>
@@ -184,10 +228,10 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { getFirestore, collection, doc, onSnapshot, addDoc, deleteDoc, updateDoc, setDoc, getDoc, query, orderBy, serverTimestamp }
+import { getFirestore, collection, doc, onSnapshot, addDoc, deleteDoc, updateDoc, query, orderBy }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-const app  = initializeApp({
+const app = initializeApp({
   apiKey:"AIzaSyArW3yhj81OJpOkCEYfyaelgcdo8o_IAPw",
   authDomain:"banchan-inventory-144bd.firebaseapp.com",
   projectId:"banchan-inventory-144bd",
@@ -199,8 +243,11 @@ const auth = getAuth(app);
 const db   = getFirestore(app);
 
 let currentUser = null;
-let items = [];
-let editingId = null;
+let shoppingItems = [];
+let memos = [];
+let editingItemId = null;
+let editingMemoId = null;
+let detailMemoId = null;
 let started = false;
 
 // ── Auth ──────────────────────────────────────────────
@@ -231,188 +278,214 @@ document.querySelectorAll('.tab-btn').forEach(btn=>{
 
 // ── Toast ─────────────────────────────────────────────
 function showToast(msg){const el=document.getElementById('toast');el.textContent=msg;el.style.opacity='1';clearTimeout(el._t);el._t=setTimeout(()=>el.style.opacity='0',2000);}
-
-// ── Date format ───────────────────────────────────────
-function fmtDate(ts){
-  if(!ts)return'';
-  const d=new Date(ts);
-  return`${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
-}
+function fmtDate(ts){if(!ts)return'';const d=new Date(ts);return`${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;}
 
 // ── Firestore ─────────────────────────────────────────
 function initData(){
-  // Shopping items
-  const q = query(collection(db,'shopping_items'), orderBy('createdAt','asc'));
-  onSnapshot(q, snap=>{
-    items = snap.docs.map(d=>({id:d.id,...d.data()}));
-    renderList();
-  }, err=>console.error(err));
-
-  // Memo
-  getDoc(doc(db,'shopping_memo','main')).then(snap=>{
-    if(snap.exists()) document.getElementById('memo-textarea').value = snap.data().text||'';
+  onSnapshot(query(collection(db,'shopping_items'),orderBy('createdAt','asc')), snap=>{
+    shoppingItems = snap.docs.map(d=>({id:d.id,...d.data()}));
+    renderShopping();
+  });
+  onSnapshot(query(collection(db,'memos'),orderBy('createdAt','desc')), snap=>{
+    memos = snap.docs.map(d=>({id:d.id,...d.data()}));
+    renderMemos();
   });
 }
 
-// ── Add item ──────────────────────────────────────────
-async function addItem(){
+// ════════════════════════════════════════════════════
+// SHOPPING
+// ════════════════════════════════════════════════════
+async function addShoppingItem(){
   const inp = document.getElementById('add-input');
   const name = inp.value.trim();
   if(!name){showToast('아이템을 입력하세요');return;}
   inp.value='';
   await addDoc(collection(db,'shopping_items'),{
-    name,
-    done: false,
-    createdAt: Date.now(),
-    addedBy: currentUser?.displayName || currentUser?.email || '',
+    name, done:false,
+    createdAt:Date.now(),
+    addedBy:currentUser?.displayName||currentUser?.email||'',
   });
-  showToast('추가됨 ✓');
 }
+document.getElementById('add-btn').addEventListener('click',addShoppingItem);
+document.getElementById('add-input').addEventListener('keydown',e=>{if(e.key==='Enter')addShoppingItem();});
 
-document.getElementById('add-btn').addEventListener('click', addItem);
-document.getElementById('add-input').addEventListener('keydown',e=>{if(e.key==='Enter')addItem();});
+function renderShopping(){
+  const ct = document.getElementById('shopping-list');
+  ct.innerHTML='';
+  const active = shoppingItems.filter(i=>!i.done).sort((a,b)=>a.createdAt-b.createdAt);
+  const done   = shoppingItems.filter(i=>i.done).sort((a,b)=>a.doneAt-b.doneAt);
 
-// ── Render list ───────────────────────────────────────
-function renderList(){
-  const container = document.getElementById('shopping-list');
-  container.innerHTML='';
-
-  const active = items.filter(i=>!i.done).sort((a,b)=>a.createdAt-b.createdAt);
-  const done   = items.filter(i=>i.done).sort((a,b)=>a.doneAt-b.doneAt);
-
-  // Active items
   const activeCard = document.createElement('div');
   activeCard.className='list-card';
-
   if(!active.length && !done.length){
     activeCard.innerHTML='<div class="empty-msg">장볼 아이템이 없어요 🛒</div>';
   } else if(!active.length){
-    activeCard.innerHTML='<div class="empty-msg">✅ 모든 아이템을 완료했어요!</div>';
+    activeCard.innerHTML='<div class="empty-msg">✅ 모두 완료했어요!</div>';
   } else {
-    active.forEach(item=>{
-      activeCard.appendChild(mkItemRow(item));
-    });
+    active.forEach(item=>activeCard.appendChild(mkShoppingRow(item)));
   }
-  container.appendChild(activeCard);
+  ct.appendChild(activeCard);
 
-  // Done items
   if(done.length){
-    const doneCard = document.createElement('div');
-    doneCard.className='list-card';
-    const doneHdr = document.createElement('div');
-    doneHdr.className='list-section-hdr';
-    doneHdr.innerHTML=`<span>완료 (${done.length})</span>`;
-    const clearBtn = document.createElement('button');
-    clearBtn.className='clear-done-btn';
-    clearBtn.textContent='전체 삭제';
+    const doneCard=document.createElement('div');doneCard.className='list-card';
+    const hdr=document.createElement('div');hdr.className='list-section-hdr';
+    hdr.innerHTML=`<span>완료 (${done.length})</span>`;
+    const clearBtn=document.createElement('button');clearBtn.className='clear-done-btn';clearBtn.textContent='전체 삭제';
     clearBtn.addEventListener('click',async()=>{
-      if(!confirm('완료된 항목을 전부 삭제할까요?'))return;
-      for(const item of done){
-        await deleteDoc(doc(db,'shopping_items',item.id));
-      }
+      if(!confirm('완료된 항목을 모두 삭제할까요?'))return;
+      for(const i of done) await deleteDoc(doc(db,'shopping_items',i.id));
       showToast('완료 목록 삭제됨');
     });
-    doneHdr.appendChild(clearBtn);
-    doneCard.appendChild(doneHdr);
-    done.forEach(item=>{
-      doneCard.appendChild(mkItemRow(item));
-    });
-    container.appendChild(doneCard);
+    hdr.appendChild(clearBtn);doneCard.appendChild(hdr);
+    done.forEach(item=>doneCard.appendChild(mkShoppingRow(item)));
+    ct.appendChild(doneCard);
   }
 }
 
-function mkItemRow(item){
-  const row = document.createElement('div');
-  row.className = 'item-row' + (item.done?' done':'');
+function mkShoppingRow(item){
+  const row=document.createElement('div');
+  row.className='item-row'+(item.done?' done':'');
+  const r=(item.remaining!==undefined&&item.remaining!==null)?item.remaining:item.qty;
 
-  const checkWrap = document.createElement('div');
-  checkWrap.className='check-wrap';
-  const cb = document.createElement('div');
-  cb.className='checkbox'+(item.done?' checked':'');
+  const checkWrap=document.createElement('div');checkWrap.className='check-wrap';
+  const cb=document.createElement('div');cb.className='checkbox'+(item.done?' checked':'');
   cb.addEventListener('click',async()=>{
-    const newDone = !item.done;
-    await updateDoc(doc(db,'shopping_items',item.id),{
-      done: newDone,
-      doneAt: newDone ? Date.now() : null,
-    });
+    const newDone=!item.done;
+    await updateDoc(doc(db,'shopping_items',item.id),{done:newDone,doneAt:newDone?Date.now():null});
   });
   checkWrap.appendChild(cb);
 
-  const content = document.createElement('div');
-  content.className='item-content';
-  const nameEl = document.createElement('div');
-  nameEl.className='item-name'+(item.done?' done':'');
-  nameEl.textContent=item.name;
-  const metaEl = document.createElement('div');
-  metaEl.className='item-meta';
+  const content=document.createElement('div');content.className='item-content';
+  const nameEl=document.createElement('div');nameEl.className='item-name'+(item.done?' done':'');nameEl.textContent=item.name;
+  const metaEl=document.createElement('div');metaEl.className='item-meta';
   metaEl.innerHTML=`<span>${fmtDate(item.createdAt)}</span>${item.addedBy?`<span>${item.addedBy}</span>`:''}`;
-  content.appendChild(nameEl);
-  content.appendChild(metaEl);
+  content.appendChild(nameEl);content.appendChild(metaEl);
 
-  const actions = document.createElement('div');
-  actions.className='item-actions';
-
+  const actions=document.createElement('div');actions.className='item-actions';
   if(!item.done){
-    const editBtn = document.createElement('button');
-    editBtn.className='item-edit';
-    editBtn.textContent='✏️';
-    editBtn.addEventListener('click',()=>openEdit(item));
+    const editBtn=document.createElement('button');editBtn.className='item-edit';editBtn.textContent='✏️';
+    editBtn.addEventListener('click',()=>openItemEdit(item));
     actions.appendChild(editBtn);
   }
-
-  const delBtn = document.createElement('button');
-  delBtn.className='item-del';
-  delBtn.textContent='✕';
-  delBtn.addEventListener('click',async()=>{
-    row.style.opacity='0'; row.style.transition='opacity .2s';
-    setTimeout(()=>deleteDoc(doc(db,'shopping_items',item.id)),200);
-  });
+  const delBtn=document.createElement('button');delBtn.className='item-del';delBtn.textContent='✕';
+  delBtn.addEventListener('click',()=>{row.style.opacity='0';row.style.transition='opacity .2s';setTimeout(()=>deleteDoc(doc(db,'shopping_items',item.id)),200);});
   actions.appendChild(delBtn);
 
-  row.appendChild(checkWrap);
-  row.appendChild(content);
-  row.appendChild(actions);
+  row.appendChild(checkWrap);row.appendChild(content);row.appendChild(actions);
   return row;
 }
 
-// ── Edit sheet ────────────────────────────────────────
-function openEdit(item){
-  editingId = item.id;
-  document.getElementById('edit-input').value=item.name;
-  document.getElementById('edit-overlay').classList.add('open');
-  document.getElementById('edit-sheet').classList.add('open');
-  setTimeout(()=>document.getElementById('edit-input').focus(),300);
+// Item edit sheet
+function openItemEdit(item){
+  editingItemId=item.id;
+  document.getElementById('item-edit-input').value=item.name;
+  document.getElementById('item-edit-overlay').classList.add('open');
+  document.getElementById('item-edit-sheet').classList.add('open');
 }
-function closeEdit(){
-  document.getElementById('edit-overlay').classList.remove('open');
-  document.getElementById('edit-sheet').classList.remove('open');
-  editingId=null;
-}
-document.getElementById('edit-overlay').addEventListener('click',closeEdit);
-document.getElementById('edit-save').addEventListener('click',async()=>{
-  if(!editingId)return;
-  const name=document.getElementById('edit-input').value.trim();
+function closeItemEdit(){document.getElementById('item-edit-overlay').classList.remove('open');document.getElementById('item-edit-sheet').classList.remove('open');editingItemId=null;}
+document.getElementById('item-edit-overlay').addEventListener('click',closeItemEdit);
+document.getElementById('item-edit-save').addEventListener('click',async()=>{
+  if(!editingItemId)return;
+  const name=document.getElementById('item-edit-input').value.trim();
   if(!name){showToast('이름을 입력하세요');return;}
-  await updateDoc(doc(db,'shopping_items',editingId),{name});
-  showToast('수정됨 ✓');
-  closeEdit();
+  await updateDoc(doc(db,'shopping_items',editingItemId),{name});
+  showToast('수정됨 ✓');closeItemEdit();
 });
-document.getElementById('edit-input').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('edit-save').click();});
+document.getElementById('item-edit-input').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('item-edit-save').click();});
 
-// ── Memo ──────────────────────────────────────────────
-let memoTimer=null;
-document.getElementById('memo-textarea').addEventListener('input',function(){
-  document.getElementById('memo-status').textContent='저장 중...';
-  clearTimeout(memoTimer);
-  memoTimer=setTimeout(async()=>{
-    await setDoc(doc(db,'shopping_memo','main'),{
-      text: this.value,
-      updatedAt: Date.now(),
-      updatedBy: currentUser?.displayName||currentUser?.email||'',
-    });
-    document.getElementById('memo-status').textContent='자동 저장됨 ✓';
-    setTimeout(()=>document.getElementById('memo-status').textContent='',2000);
-  },800);
+// ════════════════════════════════════════════════════
+// MEMO
+// ════════════════════════════════════════════════════
+document.getElementById('memo-save-btn').addEventListener('click',async()=>{
+  const title=document.getElementById('memo-title-input').value.trim();
+  const body=document.getElementById('memo-body-input').value.trim();
+  if(!title&&!body){showToast('제목이나 내용을 입력하세요');return;}
+  await addDoc(collection(db,'memos'),{
+    title:title||'(제목 없음)',body,
+    createdAt:Date.now(),
+    addedBy:currentUser?.displayName||currentUser?.email||'',
+  });
+  document.getElementById('memo-title-input').value='';
+  document.getElementById('memo-body-input').value='';
+  showToast('메모 저장됨 ✓');
+});
+
+function renderMemos(){
+  const ct=document.getElementById('memo-list');
+  ct.innerHTML='';
+  if(!memos.length){
+    const e=document.createElement('div');
+    e.style.cssText='padding:20px;text-align:center;color:var(--muted);font-size:0.82rem';
+    e.textContent='저장된 메모가 없어요';
+    ct.appendChild(e);return;
+  }
+  memos.forEach(memo=>{
+    const card=document.createElement('div');card.className='memo-card';
+    const titleEl=document.createElement('div');titleEl.className='memo-card-title';titleEl.textContent=memo.title;
+    const bodyEl=document.createElement('div');bodyEl.className='memo-card-body';bodyEl.textContent=memo.body;
+    const metaEl=document.createElement('div');metaEl.className='memo-card-meta';
+    metaEl.innerHTML=`<span>${fmtDate(memo.createdAt)}</span>${memo.addedBy?`<span>${memo.addedBy}</span>`:''}`;
+    const actionsEl=document.createElement('div');actionsEl.className='memo-card-actions';
+
+    const editBtn=document.createElement('button');editBtn.className='memo-action-btn';editBtn.textContent='✏️ 수정';
+    editBtn.addEventListener('click',e=>{e.stopPropagation();openMemoEdit(memo);});
+
+    const delBtn=document.createElement('button');delBtn.className='memo-action-btn del';delBtn.textContent='🗑 삭제';
+    delBtn.addEventListener('click',e=>{e.stopPropagation();deleteMemo(memo);});
+
+    actionsEl.appendChild(editBtn);actionsEl.appendChild(delBtn);
+    card.appendChild(titleEl);card.appendChild(bodyEl);card.appendChild(metaEl);card.appendChild(actionsEl);
+
+    // Click to open detail
+    card.addEventListener('click',()=>openMemoDetail(memo));
+    ct.appendChild(card);
+  });
+}
+
+// Memo detail
+function openMemoDetail(memo){
+  detailMemoId=memo.id;
+  document.getElementById('detail-title').textContent=memo.title;
+  document.getElementById('detail-body').textContent=memo.body;
+  document.getElementById('detail-meta').textContent=`${fmtDate(memo.createdAt)}${memo.addedBy?' · '+memo.addedBy:''}`;
+  document.getElementById('detail-overlay').classList.add('open');
+  document.getElementById('detail-sheet').classList.add('open');
+}
+function closeMemoDetail(){document.getElementById('detail-overlay').classList.remove('open');document.getElementById('detail-sheet').classList.remove('open');detailMemoId=null;}
+document.getElementById('detail-close').addEventListener('click',closeMemoDetail);
+document.getElementById('detail-overlay').addEventListener('click',closeMemoDetail);
+document.getElementById('detail-edit-btn').addEventListener('click',()=>{
+  const memo=memos.find(m=>m.id===detailMemoId);if(!memo)return;
+  closeMemoDetail();openMemoEdit(memo);
+});
+document.getElementById('detail-del-btn').addEventListener('click',()=>{
+  const memo=memos.find(m=>m.id===detailMemoId);if(!memo)return;
+  closeMemoDetail();deleteMemo(memo);
+});
+
+async function deleteMemo(memo){
+  if(!confirm(`"${memo.title}" 메모를 삭제할까요?`))return;
+  await deleteDoc(doc(db,'memos',memo.id));
+  showToast('삭제됨');
+}
+
+// Memo edit
+function openMemoEdit(memo){
+  editingMemoId=memo.id;
+  document.getElementById('memo-edit-title').value=memo.title==='(제목 없음)'?'':memo.title;
+  document.getElementById('memo-edit-body').value=memo.body;
+  document.getElementById('memo-edit-overlay').classList.add('open');
+  document.getElementById('memo-edit-sheet').classList.add('open');
+}
+function closeMemoEdit(){document.getElementById('memo-edit-overlay').classList.remove('open');document.getElementById('memo-edit-sheet').classList.remove('open');editingMemoId=null;}
+document.getElementById('memo-edit-overlay').addEventListener('click',closeMemoEdit);
+document.getElementById('memo-edit-save').addEventListener('click',async()=>{
+  if(!editingMemoId)return;
+  const title=document.getElementById('memo-edit-title').value.trim();
+  const body=document.getElementById('memo-edit-body').value.trim();
+  if(!title&&!body){showToast('제목이나 내용을 입력하세요');return;}
+  await updateDoc(doc(db,'memos',editingMemoId),{title:title||'(제목 없음)',body});
+  showToast('수정됨 ✓');closeMemoEdit();
 });
 </script>
 <script>if('serviceWorker' in navigator){navigator.serviceWorker.register('/app/sw.js').catch(()=>{});}</script>
