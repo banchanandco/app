@@ -177,6 +177,7 @@
     <div class="drawer-item" onclick="location.href='main.html'"><span class="di-icon">🏠</span> 홈</div>
     <div class="drawer-item active"><span class="di-icon">📋</span> 재고 관리</div>
     <div class="drawer-item" onclick="location.href='orders.html'"><span class="di-icon">🛒</span> 주문 관리</div>
+    <div class="drawer-item" onclick="location.href='shopping.html'"><span class="di-icon">🛍</span> 쇼핑 리스트</div>
     <div class="drawer-item" onclick="location.href='statistics.html'"><span class="di-icon">📊</span> 통계</div>
     <div class="drawer-item" onclick="location.href='schedule.html'"><span class="di-icon">📅</span> 스케줄</div>
     <div class="drawer-item" onclick="location.href='cost.html'"><span class="di-icon">🧮</span> 원가계산</div>
@@ -246,6 +247,22 @@
     <input class="sheet-input" id="conv-ratio" type="number" min="0.01" step="any" style="width:80px;flex:none" placeholder="10"/>
     <span style="font-size:0.8rem;color:var(--muted);flex:1" id="conv-ratio-label"></span>
   </div>
+  <div class="sheet-field" id="each-vol-row">
+    <span class="sheet-label">개당 용량</span>
+    <input class="sheet-input" id="conv-each-vol" type="number" min="0" step="any" style="width:80px;flex:none" placeholder="예: 1"/>
+    <select class="sheet-sel" id="conv-each-unit">
+      <option value="">없음</option>
+      <option value="Gal">Gal</option>
+      <option value="l">l</option>
+      <option value="ml">ml</option>
+      <option value="lb">lb</option>
+      <option value="oz">oz</option>
+      <option value="Kg">Kg</option>
+      <option value="g">g</option>
+    </select>
+    <span style="font-size:0.75rem;color:var(--muted);margin-left:4px">each</span>
+  </div>
+  <div style="font-size:0.72rem;color:var(--muted);padding:0 4px 8px;line-height:1.5" id="conv-example-label"></div>
   <button class="sheet-save" id="conv-save">저장하기</button>
 </div>
 
@@ -433,7 +450,9 @@ function renderInbound(){
         if(conv){
           const badge=document.createElement('span');
           badge.className='sel-conv-badge';
-          badge.textContent=`1 ${conv.inUnit} = ${conv.ratio} ${conv.outUnit}`;
+          let badgeTxt=`1 ${conv.inUnit} = ${conv.ratio} ${conv.outUnit}`;
+          if(conv.eachVol&&conv.eachUnit) badgeTxt+=`, ${conv.eachVol}${conv.eachUnit} each`;
+          badge.textContent=badgeTxt;
           nameRow.appendChild(badge);
         }
         block.appendChild(nameRow);
@@ -455,7 +474,10 @@ function renderInbound(){
 
           function updateHint(){
             const v=parseFloat(qInp.value)||0;
-            hint.textContent=v?`→ ${v*conv.ratio} ${conv.outUnit}`:'';
+            if(!v){hint.textContent='';return;}
+            let h=`→ ${v*conv.ratio} ${conv.outUnit}`;
+            if(conv.eachVol&&conv.eachUnit) h+=` (${conv.eachVol}${conv.eachUnit} each)`;
+            hint.textContent=h;
           }
           qInp.addEventListener('input',()=>{selected[sec.id][name].qty=qInp.value;selected[sec.id][name].inUnit=conv.inUnit;updateHint();});
           r1.appendChild(qInp);r1.appendChild(unitSpan);r1.appendChild(hint);
@@ -576,13 +598,24 @@ function renderStock(){
     items.forEach(item=>{
       const row=document.createElement('div');row.className='item-row';
       const inInfo=item.inboundQty?`입고: ${item.inboundQty}${item.inboundUnit}`:'';
+      // Get conversion info for food section to show in secondary unit
+      const remaining=(item.remaining!==undefined&&item.remaining!==null)?item.remaining:item.qty;
+      const conv2=conversions[sec.id]&&conversions[sec.id][item.name];
+      let qtyDisplay=`${remaining} ${item.unit}`;
+      let eachInfo='';
+      if(conv2&&conv2.ratio&&remaining!==null){
+        const secUnits=(remaining/conv2.ratio).toFixed(1);
+        qtyDisplay=`${secUnits} ${conv2.outUnit}`;
+        if(conv2.eachVol&&conv2.eachUnit) eachInfo=`${conv2.eachVol}${conv2.eachUnit} each`;
+      }
       row.innerHTML=`
         <div class="item-info">
           <div class="item-name">${item.name}</div>
-          <div class="item-meta">${fmtDate(item.createdAt)}${item.addedBy?' · '+item.addedBy:''}${inInfo?' · '+inInfo:''}</div>
+          <div class="item-meta">${fmtDate(item.createdAt)}${item.addedBy?' · '+item.addedBy:''}${inInfo?' · '+inInfo:''}${eachInfo?' · '+eachInfo:''}</div>
         </div>
         <div style="text-align:right;flex-shrink:0">
-          <div class="item-qty">${item.remaining??item.qty} ${item.unit}</div>
+          <div class="item-qty">${qtyDisplay}</div>
+          ${conv2&&conv2.ratio?`<div style="font-size:0.65rem;color:var(--muted);margin-top:1px">(${remaining} ${item.unit})</div>`:''}
         </div>
         <button class="stock-edit">✏️</button>
         <button class="del-btn">✕</button>
@@ -706,9 +739,11 @@ function openConvSheet(secId,itemName,cb){
   const existing=conversions[secId]&&conversions[secId][itemName];
   document.getElementById('conv-title').textContent=`"${itemName}" 단위 변환 설정`;
   document.getElementById('conv-hint').textContent=`입고 단위(box, case 등) 1개가 출고 단위 몇 개에 해당하는지 입력하세요.\n예) 간장 1 box = 10 개`;
-  document.getElementById('conv-in-unit').value=existing?.inUnit||'box';
-  document.getElementById('conv-out-unit').value=existing?.outUnit||'개';
-  document.getElementById('conv-ratio').value=existing?.ratio||'';
+  document.getElementById('conv-in-unit').value=(existing&&existing.inUnit)||'box';
+  document.getElementById('conv-out-unit').value=(existing&&existing.outUnit)||'개';
+  document.getElementById('conv-ratio').value=(existing&&existing.ratio)||'';
+  document.getElementById('conv-each-vol').value=(existing&&existing.eachVol)||'';
+  document.getElementById('conv-each-unit').value=(existing&&existing.eachUnit)||'';
   updateConvLabel();
   document.getElementById('conv-overlay').classList.add('open');
   document.getElementById('conv-sheet').classList.add('open');
@@ -720,24 +755,32 @@ function updateConvLabel(){
   const inU=document.getElementById('conv-in-unit').value;
   const outU=document.getElementById('conv-out-unit').value;
   const ratio=document.getElementById('conv-ratio').value;
+  const eachVol=document.getElementById('conv-each-vol').value;
+  const eachUnit=document.getElementById('conv-each-unit').value;
   document.getElementById('conv-ratio-label').textContent=ratio?`${inU} 1개 = ${ratio} ${outU}`:`${inU} 1개당 ${outU} 수량`;
+  const exEl=document.getElementById('conv-example-label');
+  if(ratio&&eachVol&&eachUnit) exEl.textContent=`예) 1 ${inU} = ${ratio} ${outU}, ${eachVol}${eachUnit} each`;
+  else exEl.textContent='';
 }
 document.getElementById('conv-in-unit').addEventListener('change',updateConvLabel);
 document.getElementById('conv-out-unit').addEventListener('change',updateConvLabel);
 document.getElementById('conv-ratio').addEventListener('input',updateConvLabel);
+document.getElementById('conv-each-vol').addEventListener('input',updateConvLabel);
+document.getElementById('conv-each-unit').addEventListener('change',updateConvLabel);
 
 document.getElementById('conv-save').addEventListener('click',async()=>{
   const inUnit=document.getElementById('conv-in-unit').value;
   const outUnit=document.getElementById('conv-out-unit').value;
   const ratio=parseFloat(document.getElementById('conv-ratio').value);
+  const eachVol=parseFloat(document.getElementById('conv-each-vol').value)||null;
+  const eachUnit=document.getElementById('conv-each-unit').value||null;
   if(!ratio||ratio<=0){showToast('변환 비율을 입력하세요');return;}
   if(!conversions[convSecId])conversions[convSecId]={};
-  conversions[convSecId][convItem]={inUnit,outUnit,ratio};
-  // Save to Firestore
+  conversions[convSecId][convItem]={inUnit,outUnit,ratio,eachVol,eachUnit};
   const convRef=doc(db,'item_conversions',convSecId);
   const snap=await getDoc(convRef);
   const existing=snap.exists()?snap.data():{};
-  existing[convItem]={inUnit,outUnit,ratio};
+  existing[convItem]={inUnit,outUnit,ratio,eachVol,eachUnit};
   await setDoc(convRef,existing);
   showToast('변환 설정 저장됨 ✓');
   closeConv();

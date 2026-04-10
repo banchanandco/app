@@ -144,6 +144,16 @@
     .drawer-logout{margin:0 16px 20px;padding:12px;border:1.5px solid var(--border);border-radius:10px;background:transparent;font-family:'Noto Sans KR',sans-serif;font-size:0.85rem;color:var(--muted);cursor:pointer;width:calc(100% - 32px)}
     .hamburger-btn{background:none;border:none;cursor:pointer;padding:4px;display:flex;flex-direction:column;gap:5px;margin-right:4px}
     .hamburger-btn span{display:block;width:22px;height:2px;background:#fff;border-radius:2px}
+    /* APPLY TO STOCK */
+    .apply-stock-btn{width:100%;padding:13px;border:none;border-radius:12px;background:var(--brown);color:#fff;font-family:'Noto Sans KR',sans-serif;font-size:0.9rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px}
+    .apply-stock-btn:active{opacity:0.85}
+    .stock-preview{background:var(--surface);border-radius:12px;border:1px solid var(--border);overflow:hidden}
+    .stock-preview-hdr{padding:9px 14px;font-size:0.75rem;font-weight:700;color:var(--muted);background:var(--subtle);border-bottom:1px solid var(--border)}
+    .stock-preview-row{display:flex;justify-content:space-between;align-items:center;padding:8px 14px;border-bottom:1px solid var(--subtle);font-size:0.82rem}
+    .stock-preview-row:last-child{border-bottom:none}
+    .stock-preview-name{color:var(--body)}
+    .stock-preview-val{font-family:'DM Mono',monospace;font-size:0.78rem;color:var(--accent-dark)}
+    .stock-preview-val.no-match{color:var(--muted);font-family:'Noto Sans KR',sans-serif;font-size:0.72rem}
     #toast{position:fixed;bottom:20px;right:16px;background:var(--accent-dark);color:#fff;font-size:0.75rem;padding:7px 14px;border-radius:20px;opacity:0;transition:opacity .3s;z-index:999;pointer-events:none}
   </style>
 </head>
@@ -264,7 +274,7 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
   import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { getFirestore, collection, onSnapshot, addDoc, deleteDoc, updateDoc, doc, orderBy, query }
+import { getFirestore, collection, onSnapshot, addDoc, deleteDoc, updateDoc, doc, getDoc, setDoc, orderBy, query }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const _fbApp = initializeApp({
@@ -286,7 +296,14 @@ onAuthStateChanged(_auth, user => {
 const PIN = '5896';
 let pinBuf = '';
 let recipes = [];
-let costIngredients = []; // from cost_ingredients collection
+let costIngredients = [];
+let invCache = {}; // {secId: [items]}
+let invConversions = {}; // {secId: {itemName: {inUnit,outUnit,ratio,eachVol,eachUnit}}}
+
+const INV_SECTIONS = [
+  {id:'food'},{id:'veggie'},{id:'meat'},{id:'container'},{id:'misc'},{id:'clean'},{id:'other'}
+];
+INV_SECTIONS.forEach(s=>{invCache[s.id]=[];});
 let currentIngredients = [];
 let editingId = null;
 let currentDetailId = null;
@@ -336,7 +353,7 @@ function showToast(msg){const el=document.getElementById('toast');el.textContent
 
 // ── Firestore ─────────────────────────────────────────
 function initFirestore(){
-  // Load cost ingredients for price lookup
+  // Load cost ingredients
   onSnapshot(query(collection(db,'cost_ingredients'),orderBy('name')), snap=>{
     costIngredients = snap.docs.map(d=>({id:d.id,...d.data()}));
   });
@@ -344,6 +361,15 @@ function initFirestore(){
   onSnapshot(query(collection(db,'recipes'),orderBy('name')), snap=>{
     recipes = snap.docs.map(d=>({id:d.id,...d.data()}));
     renderGrid(document.getElementById('search-box').value);
+  });
+  // Load inventory data + conversions for stock deduction
+  INV_SECTIONS.forEach(sec=>{
+    onSnapshot(query(collection(db,`inv_${sec.id}`),orderBy('name')), snap=>{
+      invCache[sec.id] = snap.docs.map(d=>({id:d.id,...d.data()}));
+    });
+    getDoc(doc(db,'item_conversions',sec.id)).then(snap=>{
+      if(snap.exists()) invConversions[sec.id] = snap.data()||{};
+    });
   });
 }
 
@@ -601,6 +627,132 @@ function renderDetailBody(r, displayServing){
     `;
   }
   body.appendChild(summary);
+
+  // ── Stock deduction preview ──
+  const s3=document.createElement('div');s3.className='section-title';s3.textContent='재고 반영';body.appendChild(s3);
+
+  // Build deduction map: find matching inv items and calculate amounts
+  const deductions = buildDeductions(r.ingredients||[], displayServing, totalServing);
+
+  const preview=document.createElement('div');preview.className='stock-preview';
+  const phdr=document.createElement('div');phdr.className='stock-preview-hdr';
+  phdr.textContent=`재료 사용 시 재고에서 차감될 수량 (${displayServing}인분 기준)`;
+  preview.appendChild(phdr);
+
+  if(!deductions.length){
+    const e=document.createElement('div');e.style.cssText='padding:14px;text-align:center;color:var(--muted);font-size:0.8rem';
+    e.textContent='재고에 매칭되는 재료가 없어요';preview.appendChild(e);
+  } else {
+    deductions.forEach(d=>{
+      const row=document.createElement('div');row.className='stock-preview-row';
+      if(d.invItem){
+        const curRemaining=(d.invItem.remaining!==undefined&&d.invItem.remaining!==null)?d.invItem.remaining:d.invItem.qty;
+        const afterRemaining=Math.max(0,curRemaining-d.deductGrams);
+        // Convert back to secondary unit if conversion exists
+        const conv=d.conv;
+        let curDisplay,afterDisplay;
+        if(conv&&conv.ratio){
+          curDisplay=`${(curRemaining/conv.ratio).toFixed(1)} ${conv.outUnit}`;
+          afterDisplay=`${(afterRemaining/conv.ratio).toFixed(1)} ${conv.outUnit}`;
+        } else {
+          curDisplay=`${curRemaining} ${d.invItem.unit}`;
+          afterDisplay=`${afterRemaining} ${d.invItem.unit}`;
+        }
+        row.innerHTML=`<span class="stock-preview-name">${d.name}</span><span class="stock-preview-val">${curDisplay} → ${afterDisplay}</span>`;
+      } else {
+        row.innerHTML=`<span class="stock-preview-name">${d.name}</span><span class="stock-preview-val no-match">재고 없음</span>`;
+      }
+      preview.appendChild(row);
+    });
+  }
+  body.appendChild(preview);
+
+  // Apply button
+  const applyBtn=document.createElement('button');
+  applyBtn.className='apply-stock-btn';
+  applyBtn.innerHTML='📦 재고에 반영하기';
+  applyBtn.addEventListener('click',async()=>{
+    const matched=deductions.filter(d=>d.invItem);
+    if(!matched.length){showToast('재고에 매칭된 재료가 없어요');return;}
+    applyBtn.disabled=true;applyBtn.textContent='반영 중...';
+    for(const d of matched){
+      const curR=(d.invItem.remaining!==undefined&&d.invItem.remaining!==null)?d.invItem.remaining:d.invItem.qty;
+      const newR=Math.max(0,curR-d.deductGrams);
+      // Find which section this item is in
+      for(const sec of INV_SECTIONS){
+        const found=invCache[sec.id].find(i=>i.id===d.invItem.id);
+        if(found){
+          await updateDoc(doc(db,`inv_${sec.id}`,d.invItem.id),{remaining:parseFloat(newR.toFixed(4))});
+          break;
+        }
+      }
+    }
+    showToast(`${matched.length}개 재료 재고 반영됨 ✓`);
+    applyBtn.disabled=false;applyBtn.innerHTML='📦 재고에 반영하기';
+    renderDetailBody(r, displayServing);
+  });
+  body.appendChild(applyBtn);
+}
+
+// ── Build deductions ──────────────────────────────────
+// Convert recipe ingredient amount to inventory base unit (grams/ml)
+function buildDeductions(ingredients, displayServing, totalServing){
+  const ratio = displayServing / totalServing;
+  return ingredients.map(ing=>{
+    const amt = parseFloat(ing.amount) * ratio;
+    if(!amt) return null;
+    // Convert recipe unit → grams or ml
+    const grams = convertToBaseUnit(amt, ing.unit);
+    if(grams === null) return {name:ing.name,deductGrams:amt,unit:ing.unit,invItem:null,conv:null};
+
+    // Find matching inv item across all sections
+    let matchedItem=null, matchedConv=null, matchedSec=null;
+    for(const sec of INV_SECTIONS){
+      const item=invCache[sec.id].find(i=>i.name.trim().toLowerCase()===ing.name.trim().toLowerCase());
+      if(item){
+        matchedItem=item;
+        matchedConv=(invConversions[sec.id]&&invConversions[sec.id][item.name])||null;
+        matchedSec=sec;
+        break;
+      }
+    }
+
+    if(!matchedItem) return {name:ing.name,deductGrams:grams,unit:ing.unit,invItem:null,conv:matchedConv};
+
+    // Convert recipe amount to inv base unit
+    // inv stores in stockUnit (e.g. grams if Kg, ml if l)
+    const invUnit=matchedItem.unit;
+    const deductInInvUnit = convertToSameUnit(grams, ing.unit, invUnit);
+
+    return {name:ing.name,deductGrams:deductInInvUnit!==null?deductInInvUnit:grams,unit:ing.unit,invItem:matchedItem,conv:matchedConv};
+  }).filter(d=>d!==null);
+}
+
+// Convert amount in any unit to grams (weight) or ml (volume)
+function convertToBaseUnit(amount, unit){
+  const weightMap={g:1,Kg:1000,lb:453.592,oz:28.3495};
+  const volMap={ml:1,l:1000,cup:240,tbsp:15,tsp:5,Gal:3785.41};
+  if(weightMap[unit]!==undefined) return amount*weightMap[unit]; // → grams
+  if(volMap[unit]!==undefined) return amount*volMap[unit]; // → ml
+  return null;
+}
+
+// Convert from recipe unit to inventory base unit
+function convertToSameUnit(amount, fromUnit, toUnit){
+  const weightMap={g:1,Kg:1000,lb:453.592,oz:28.3495};
+  const volMap={ml:1,l:1000,cup:240,tbsp:15,tsp:5,Gal:3785.41};
+  // Both weight
+  if(weightMap[fromUnit]!==undefined && weightMap[toUnit]!==undefined){
+    return amount * weightMap[fromUnit] / weightMap[toUnit];
+  }
+  // Both volume
+  if(volMap[fromUnit]!==undefined && volMap[toUnit]!==undefined){
+    return amount * volMap[fromUnit] / volMap[toUnit];
+  }
+  // Gal special
+  if(fromUnit==='Gal'&&toUnit==='ml') return amount*3785.41;
+  if(fromUnit==='ml'&&toUnit==='Gal') return amount/3785.41;
+  return null;
 }
 
 // ── Edit / Delete ─────────────────────────────────────
