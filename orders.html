@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>주문 관리 — Banchan and Co</title>
+  <link rel="manifest" href="manifest.json"/>
+  <meta name="theme-color" content="#9caf88"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-title" content="Banchan"/>
+  <link rel="apple-touch-icon" href="icons/icon-192.png"/>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{
+      --accent:#9caf88;--accent-dark:#7a9068;--accent-bg:#f0f5ec;--accent-light:#c8d9bc;
+      --bg:#f5f4f0;--surface:#fff;--border:#dedad3;--subtle:#eceae5;
+      --muted:#9a9488;--body:#4a4540;--heading:#2a2520;
+      --urgent:#e05555;--urgent-bg:#fdf0f0;--warn:#e09020;--warn-bg:#fdf6ec;
+    }
+    body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--body);min-height:100vh;padding-bottom:80px}
+
+    /* HEADER */
+    header{background:var(--accent);color:#fff;padding:14px 16px;position:sticky;top:0;z-index:200;display:flex;align-items:center;justify-content:space-between}
+    .header-left{display:flex;align-items:center;gap:10px}
+    .hamburger{background:none;border:none;cursor:pointer;padding:4px;display:flex;flex-direction:column;gap:5px}
+    .hamburger span{display:block;width:22px;height:2px;background:#fff;border-radius:2px}
+    .back-btn{background:none;border:none;color:#fff;font-size:1.3rem;cursor:pointer;line-height:1}
+    header h1{font-size:1.05rem;font-weight:700;color:#fff}
+    .user-avatar{width:28px;height:28px;border-radius:50%;border:2px solid rgba(255,255,255,0.4);object-fit:cover}
+
+    /* DRAWER */
+    .drawer-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.35);z-index:300;opacity:0;pointer-events:none;transition:opacity .25s}
+    .drawer-overlay.open{opacity:1;pointer-events:all}
+    .drawer{position:fixed;left:-280px;top:0;bottom:0;width:280px;background:var(--surface);z-index:301;transition:left .25s;display:flex;flex-direction:column;box-shadow:4px 0 20px rgba(0,0,0,0.12)}
+    .drawer.open{left:0}
+    .drawer-header{background:var(--accent);padding:44px 20px 20px;display:flex;flex-direction:column;gap:6px}
+    .drawer-avatar{width:46px;height:46px;border-radius:50%;border:2px solid rgba(255,255,255,0.4);object-fit:cover;margin-bottom:4px}
+    .drawer-name{font-size:1rem;font-weight:700;color:#fff}
+    .drawer-email{font-size:0.73rem;color:rgba(255,255,255,0.65)}
+    .drawer-menu{flex:1;padding:10px 0}
+    .drawer-item{display:flex;align-items:center;gap:14px;padding:14px 20px;font-size:0.9rem;color:var(--body);cursor:pointer}
+    .drawer-item:active{background:var(--accent-bg)}
+    .drawer-item.active{color:var(--accent-dark);font-weight:600;background:var(--accent-bg)}
+    .drawer-item .di-icon{font-size:1.2rem}
+    .drawer-logout{margin:0 16px 20px;padding:12px;border:1.5px solid var(--border);border-radius:10px;background:transparent;font-family:'Noto Sans KR',sans-serif;font-size:0.85rem;color:var(--muted);cursor:pointer;width:calc(100% - 32px)}
+
+    /* TABS */
+    .tab-bar{background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:53px;z-index:100;display:flex;overflow-x:auto}
+    .tab-bar::-webkit-scrollbar{display:none}
+    .tab-btn{flex-shrink:0;padding:12px 16px;border:none;background:transparent;font-family:'Noto Sans KR',sans-serif;font-size:0.8rem;font-weight:600;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap}
+    .tab-btn.active{color:var(--accent-dark);border-bottom-color:var(--accent)}
+    .tab-btn.manage-tab{color:var(--muted);font-size:0.75rem}
+
+    /* CONTENT */
+    .content{padding:14px;display:flex;flex-direction:column;gap:12px}
+
+    /* SUMMARY ROW */
+    .sum-row{display:flex;gap:8px}
+    .sum-card{flex:1;background:var(--surface);border-radius:12px;border:1px solid var(--border);padding:12px 10px;text-align:center}
+    .sum-num{font-family:'DM Mono',monospace;font-size:1.4rem;font-weight:600;line-height:1}
+    .sum-num.urgent{color:var(--urgent)}
+    .sum-num.warn{color:var(--warn)}
+    .sum-num.ok{color:var(--accent-dark)}
+    .sum-label{font-size:0.67rem;color:var(--muted);margin-top:3px}
+
+    /* ORDER CARD */
+    .order-section{background:var(--surface);border-radius:14px;border:1px solid var(--border);overflow:hidden;margin-bottom:2px}
+    .order-section.urgent-section{border-color:var(--urgent)}
+    .order-section-hdr{padding:10px 14px;font-size:0.8rem;font-weight:700;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--subtle)}
+    .order-section-hdr.urgent{background:var(--urgent-bg);color:var(--urgent)}
+    .order-section-hdr.warn{background:var(--warn-bg);color:var(--warn)}
+
+    /* ORDER ITEM ROW */
+    .order-row{display:flex;align-items:center;gap:10px;padding:11px 14px;border-bottom:1px solid var(--subtle)}
+    .order-row:last-child{border-bottom:none}
+    .order-info{flex:1;min-width:0}
+    .order-name{font-size:0.88rem;font-weight:600;color:var(--heading)}
+    .order-sub{font-size:0.7rem;color:var(--muted);margin-top:2px;display:flex;gap:8px;flex-wrap:wrap}
+    .order-pct{font-family:'DM Mono',monospace;font-size:0.72rem;font-weight:700}
+    .order-pct.urgent{color:var(--urgent)}
+    .order-pct.warn{color:var(--warn)}
+    .vendor-chip{display:inline-flex;align-items:center;gap:4px;background:var(--accent-bg);border:1px solid var(--accent-light);border-radius:12px;padding:2px 8px;font-size:0.7rem;color:var(--accent-dark);cursor:pointer;white-space:nowrap}
+    .vendor-chip.unset{background:var(--subtle);border-color:var(--border);color:var(--muted)}
+    .vendor-chip:active{opacity:0.7}
+    .empty-card{background:var(--surface);border-radius:14px;border:1px solid var(--border);padding:32px;text-align:center;color:var(--muted);font-size:0.85rem}
+
+    /* VENDOR MANAGE */
+    .vendor-list-card{background:var(--surface);border-radius:14px;border:1px solid var(--border);overflow:hidden}
+    .vendor-list-hdr{padding:12px 16px;border-bottom:1px solid var(--subtle);font-size:0.85rem;font-weight:700;color:var(--heading)}
+    .vendor-row{display:flex;align-items:center;gap:10px;padding:11px 16px;border-bottom:1px solid var(--subtle)}
+    .vendor-row:last-child{border-bottom:none}
+    .vendor-name{flex:1;font-size:0.88rem;font-weight:600;color:var(--heading)}
+    .vendor-sub{font-size:0.72rem;color:var(--muted)}
+    .v-edit-btn{width:28px;height:28px;border-radius:50%;border:1.5px solid var(--border);background:var(--surface);color:var(--muted);font-size:0.78rem;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+    .v-del-btn{width:28px;height:28px;border-radius:50%;border:none;background:transparent;color:var(--muted);font-size:0.82rem;cursor:pointer;flex-shrink:0}
+    .add-vendor-row{display:flex;gap:8px;padding:12px 14px;border-top:1px solid var(--subtle)}
+    .add-vendor-input{flex:1;border:1px solid var(--border);outline:none;font-family:'Noto Sans KR',sans-serif;font-size:0.88rem;color:var(--body);background:var(--subtle);border-radius:8px;padding:9px 11px}
+    .add-vendor-input:focus{border-color:var(--accent)}
+    .add-vendor-btn{padding:9px 14px;border:none;border-radius:8px;background:var(--accent);color:#fff;font-family:'Noto Sans KR',sans-serif;font-size:0.85rem;cursor:pointer;white-space:nowrap}
+
+    /* SHEETS */
+    .sheet-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:400;opacity:0;pointer-events:none;transition:opacity .25s}
+    .sheet-overlay.open{opacity:1;pointer-events:all}
+    .sheet{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-radius:22px 22px 0 0;z-index:401;padding:20px 16px 40px;transform:translateY(100%);transition:transform .3s ease;max-height:85vh;overflow-y:auto}
+    .sheet.open{transform:translateY(0)}
+    .sheet-handle{width:40px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 16px}
+    .sheet-title{font-size:0.95rem;font-weight:700;color:var(--heading);margin-bottom:14px}
+    .sheet-input{width:100%;border:1px solid var(--border);outline:none;font-family:'Noto Sans KR',sans-serif;font-size:0.88rem;color:var(--body);background:var(--subtle);border-radius:8px;padding:10px 12px;margin-bottom:10px}
+    .sheet-input:focus{border-color:var(--accent)}
+    .sheet-save{width:100%;padding:12px;border:none;border-radius:12px;background:var(--accent);color:#fff;font-family:'Noto Sans KR',sans-serif;font-size:0.9rem;font-weight:700;cursor:pointer}
+    .sheet-save:active{background:var(--accent-dark)}
+
+    /* VENDOR PICKER in sheet */
+    .vendor-picker-list{display:flex;flex-direction:column;gap:6px;margin-bottom:12px;max-height:300px;overflow-y:auto}
+    .vendor-pick-btn{padding:11px 14px;border:1.5px solid var(--border);border-radius:10px;background:var(--surface);font-family:'Noto Sans KR',sans-serif;font-size:0.88rem;color:var(--body);cursor:pointer;text-align:left}
+    .vendor-pick-btn:active{background:var(--accent-bg)}
+    .vendor-pick-btn.selected{border-color:var(--accent);background:var(--accent-bg);color:var(--accent-dark);font-weight:600}
+    .vendor-pick-none{padding:11px 14px;border:1.5px dashed var(--border);border-radius:10px;background:transparent;font-family:'Noto Sans KR',sans-serif;font-size:0.85rem;color:var(--muted);cursor:pointer;text-align:left}
+    .vendor-pick-none:active{background:var(--subtle)}
+
+    #toast{position:fixed;bottom:20px;right:16px;background:var(--accent-dark);color:#fff;font-size:0.75rem;padding:7px 14px;border-radius:20px;opacity:0;transition:opacity .3s;z-index:999;pointer-events:none}
+  </style>
+</head>
+<body>
+
+<div class="drawer-overlay" id="drawer-overlay"></div>
+<div class="drawer" id="drawer">
+  <div class="drawer-header">
+    <img class="drawer-avatar" id="drawer-avatar" src="" alt=""/>
+    <div class="drawer-name" id="drawer-name"></div>
+    <div class="drawer-email" id="drawer-email"></div>
+  </div>
+  <div class="drawer-menu">
+    <div class="drawer-item" onclick="location.href='main.html'"><span class="di-icon">🏠</span> 홈</div>
+    <div class="drawer-item" onclick="location.href='inventory.html'"><span class="di-icon">📋</span> 재고 관리</div>
+    <div class="drawer-item active"><span class="di-icon">🛒</span> 주문 관리</div>
+    <div class="drawer-item" onclick="location.href='statistics.html'"><span class="di-icon">📊</span> 통계</div>
+    <div class="drawer-item" onclick="location.href='schedule.html'"><span class="di-icon">📅</span> 스케줄</div>
+    <div class="drawer-item" onclick="location.href='cost.html'"><span class="di-icon">🧮</span> 원가계산</div>
+    <div class="drawer-item" onclick="location.href='recipe.html'"><span class="di-icon">📖</span> 레시피</div>
+  </div>
+  <button class="drawer-logout" id="logout-btn">로그아웃</button>
+</div>
+
+<header>
+  <div class="header-left">
+    <button class="hamburger" id="hamburger-btn"><span></span><span></span><span></span></button>
+    <button class="back-btn" onclick="location.href='main.html'">‹</button>
+    <h1>🛒 주문 관리</h1>
+  </div>
+  <div class="header-right">
+    <img class="user-avatar" id="header-avatar" src="" alt=""/>
+  </div>
+</header>
+
+<div class="tab-bar" id="tab-bar">
+  <button class="tab-btn active" data-tab="all">전체</button>
+  <!-- 거래처 탭은 동적으로 추가 -->
+  <button class="tab-btn manage-tab" data-tab="manage">⚙️ 거래처</button>
+</div>
+
+<div class="content" id="content">
+  <div style="padding:40px;text-align:center;color:var(--muted)">로딩 중...</div>
+</div>
+
+<!-- VENDOR PICKER SHEET -->
+<div class="sheet-overlay" id="vpick-overlay"></div>
+<div class="sheet" id="vpick-sheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-title" id="vpick-title">거래처 선택</div>
+  <div class="vendor-picker-list" id="vpick-list"></div>
+  <button class="sheet-save" id="vpick-save" style="display:none">저장</button>
+</div>
+
+<!-- VENDOR EDIT SHEET -->
+<div class="sheet-overlay" id="vedit-overlay"></div>
+<div class="sheet" id="vedit-sheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-title" id="vedit-title">거래처 수정</div>
+  <input class="sheet-input" id="vedit-name" placeholder="거래처 이름"/>
+  <input class="sheet-input" id="vedit-contact" placeholder="연락처 (선택)"/>
+  <button class="sheet-save" id="vedit-save">저장하기</button>
+</div>
+
+<div id="toast"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getFirestore, collection, doc, onSnapshot, addDoc, deleteDoc, updateDoc, setDoc, getDoc, query, orderBy }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const app = initializeApp({
+  apiKey:"AIzaSyArW3yhj81OJpOkCEYfyaelgcdo8o_IAPw",
+  authDomain:"banchan-inventory-144bd.firebaseapp.com",
+  projectId:"banchan-inventory-144bd",
+  storageBucket:"banchan-inventory-144bd.firebasestorage.app",
+  messagingSenderId:"1022526862273",
+  appId:"1:1022526862273:web:12a025d9db24c7c6b83540"
+});
+const auth = getAuth(app);
+const db   = getFirestore(app);
+
+const SECTIONS = [
+  {id:'food',      label:'소스,양념', icon:'🥩'},
+  {id:'veggie',    label:'야채',      icon:'🥬'},
+  {id:'meat',      label:'고기',      icon:'🍖'},
+  {id:'container', label:'컨테이너',  icon:'📦'},
+  {id:'misc',      label:'소모품',    icon:'🪣'},
+  {id:'clean',     label:'청소',      icon:'🧹'},
+  {id:'other',     label:'기타',      icon:'📂'},
+];
+
+let cache = {};          // inv items per section
+let vendors = [];        // [{id, name, contact}]
+let itemVendors = {};    // {itemId: vendorId}
+let curTab = 'all';
+let started = false;
+
+SECTIONS.forEach(s => cache[s.id] = []);
+
+// ── Auth ──────────────────────────────────────────────
+onAuthStateChanged(auth, user => {
+  if (!user) { location.href='index.html'; return; }
+  document.getElementById('header-avatar').src = user.photoURL||'';
+  document.getElementById('drawer-avatar').src  = user.photoURL||'';
+  document.getElementById('drawer-name').textContent  = user.displayName||'';
+  document.getElementById('drawer-email').textContent = user.email||'';
+  if (!started) { started=true; initData(); }
+});
+
+// ── Drawer ────────────────────────────────────────────
+document.getElementById('hamburger-btn').addEventListener('click',()=>{document.getElementById('drawer').classList.add('open');document.getElementById('drawer-overlay').classList.add('open');});
+document.getElementById('drawer-overlay').addEventListener('click',()=>{document.getElementById('drawer').classList.remove('open');document.getElementById('drawer-overlay').classList.remove('open');});
+document.getElementById('logout-btn').addEventListener('click',async()=>{await signOut(auth);location.href='index.html';});
+
+// ── Toast ─────────────────────────────────────────────
+function showToast(msg){const el=document.getElementById('toast');el.textContent=msg;el.style.opacity='1';clearTimeout(el._t);el._t=setTimeout(()=>el.style.opacity='0',2200);}
+
+// ── Init data ─────────────────────────────────────────
+function initData() {
+  // Vendors
+  onSnapshot(query(collection(db,'vendors'),orderBy('name')), snap=>{
+    vendors = snap.docs.map(d=>({id:d.id,...d.data()}));
+    renderTabs();
+    render();
+  });
+
+  // Item→vendor mapping
+  onSnapshot(doc(db,'order_config','item_vendors'), snap=>{
+    itemVendors = snap.exists() ? (snap.data()||{}) : {};
+    render();
+  });
+
+  // Inventory
+  const done = new Set();
+  SECTIONS.forEach(sec=>{
+    onSnapshot(query(collection(db,`inv_${sec.id}`),orderBy('name')), snap=>{
+      cache[sec.id] = snap.docs.map(d=>({id:d.id,...d.data(),secId:sec.id,secLabel:sec.label,secIcon:sec.icon}));
+      done.add(sec.id);
+      render();
+    }, ()=>{ done.add(sec.id); render(); });
+  });
+}
+
+// ── Get order items (urgent + warn) ──────────────────
+function getOrderItems() {
+  const urgent=[], warn=[];
+  SECTIONS.forEach(sec=>{
+    cache[sec.id].forEach(item=>{
+      const r = (item.remaining !== undefined && item.remaining !== null) ? item.remaining : item.qty;
+      const pct = item.qty > 0 ? (r / item.qty) * 100 : 0;
+      if (pct <= 15) urgent.push({...item, pct});
+      else if (pct <= 40) warn.push({...item, pct});
+    });
+  });
+  return {urgent, warn};
+}
+
+// ── Render tabs ───────────────────────────────────────
+function renderTabs() {
+  const bar = document.getElementById('tab-bar');
+  // Remove old vendor tabs (keep 전체 and ⚙️)
+  bar.innerHTML = '';
+  const allBtn = document.createElement('button');
+  allBtn.className = 'tab-btn' + (curTab==='all'?' active':'');
+  allBtn.dataset.tab = 'all';
+  allBtn.textContent = '전체';
+  allBtn.addEventListener('click', ()=>switchTab('all'));
+  bar.appendChild(allBtn);
+
+  vendors.forEach(v=>{
+    const btn = document.createElement('button');
+    btn.className = 'tab-btn' + (curTab===v.id?' active':'');
+    btn.dataset.tab = v.id;
+    btn.textContent = v.name;
+    btn.addEventListener('click', ()=>switchTab(v.id));
+    bar.appendChild(btn);
+  });
+
+  const mgBtn = document.createElement('button');
+  mgBtn.className = 'tab-btn manage-tab' + (curTab==='manage'?' active':'');
+  mgBtn.dataset.tab = 'manage';
+  mgBtn.textContent = '⚙️ 거래처';
+  mgBtn.addEventListener('click', ()=>switchTab('manage'));
+  bar.appendChild(mgBtn);
+}
+
+function switchTab(tab) {
+  curTab = tab;
+  renderTabs();
+  render();
+}
+
+// ── Main render ───────────────────────────────────────
+function render() {
+  if (curTab === 'manage') { renderManage(); return; }
+  renderOrders();
+}
+
+// ── Orders view ───────────────────────────────────────
+function renderOrders() {
+  const ct = document.getElementById('content');
+  ct.innerHTML = '';
+  const {urgent, warn} = getOrderItems();
+  let items = [...urgent, ...warn];
+
+  // Filter by vendor tab
+  if (curTab !== 'all') {
+    items = items.filter(i => itemVendors[i.id] === curTab);
+    // Also show unassigned if no vendor tab
+  }
+
+  // Summary
+  const uCount = items.filter(i=>i.pct<=15).length;
+  const wCount = items.filter(i=>i.pct>15&&i.pct<=40).length;
+  const noVendor = items.filter(i=>!itemVendors[i.id]).length;
+  const sr = document.createElement('div'); sr.className='sum-row';
+  sr.innerHTML=`
+    <div class="sum-card"><div class="sum-num urgent">${uCount}</div><div class="sum-label">🚨 Urgent</div></div>
+    <div class="sum-card"><div class="sum-num warn">${wCount}</div><div class="sum-label">🛒 주문요망</div></div>
+    <div class="sum-card"><div class="sum-num ok">${noVendor}</div><div class="sum-label">거래처 미지정</div></div>
+  `;
+  ct.appendChild(sr);
+
+  if (!items.length) {
+    ct.appendChild(Object.assign(document.createElement('div'),{className:'empty-card',textContent:'🎉 주문할 항목이 없어요!'}));
+    return;
+  }
+
+  // Urgent section
+  const urgItems = items.filter(i=>i.pct<=15);
+  if (urgItems.length) {
+    const sec = mkSection('🚨 Urgent', 'urgent', true);
+    urgItems.sort((a,b)=>a.pct-b.pct).forEach(item=>sec.appendChild(mkOrderRow(item)));
+    ct.appendChild(sec);
+  }
+
+  // Warn section
+  const warnItems = items.filter(i=>i.pct>15&&i.pct<=40);
+  if (warnItems.length) {
+    const sec = mkSection('🛒 주문 요망', 'warn', false);
+    warnItems.sort((a,b)=>a.pct-b.pct).forEach(item=>sec.appendChild(mkOrderRow(item)));
+    ct.appendChild(sec);
+  }
+}
+
+function mkSection(title, cls, isUrgent) {
+  const card = document.createElement('div');
+  card.className = 'order-section' + (isUrgent?' urgent-section':'');
+  const hdr = document.createElement('div');
+  hdr.className = `order-section-hdr ${cls}`;
+  hdr.textContent = title;
+  card.appendChild(hdr);
+  return card;
+}
+
+function mkOrderRow(item) {
+  const row = document.createElement('div');
+  row.className = 'order-row';
+  const r = (item.remaining !== undefined && item.remaining !== null) ? item.remaining : item.qty;
+  const vendorId = itemVendors[item.id];
+  const vendor = vendors.find(v=>v.id===vendorId);
+  const pctCls = item.pct <= 15 ? 'urgent' : 'warn';
+
+  row.innerHTML = `
+    <div class="order-info">
+      <div class="order-name">${item.name}</div>
+      <div class="order-sub">
+        <span>${item.secIcon} ${item.secLabel}</span>
+        <span class="order-pct ${pctCls}">잔여 ${item.pct.toFixed(0)}%</span>
+        <span>${r} / ${item.qty} ${item.unit}</span>
+      </div>
+    </div>
+    <div class="vendor-chip ${vendor?'':'unset'}" data-item="${item.id}">
+      ${vendor ? vendor.name : '+ 거래처'}
+    </div>
+  `;
+
+  row.querySelector('.vendor-chip').addEventListener('click', ()=>openVendorPicker(item));
+  return row;
+}
+
+// ── Vendor picker sheet ───────────────────────────────
+let pickingItem = null;
+let pickedVendorId = null;
+
+function openVendorPicker(item) {
+  pickingItem = item;
+  pickedVendorId = itemVendors[item.id] || null;
+  document.getElementById('vpick-title').textContent = `거래처 선택 — ${item.name}`;
+
+  const list = document.getElementById('vpick-list');
+  list.innerHTML = '';
+
+  // No vendor option
+  const noneBtn = document.createElement('button');
+  noneBtn.className = 'vendor-pick-none' + (!pickedVendorId?' selected':'');
+  noneBtn.textContent = '거래처 없음';
+  noneBtn.addEventListener('click', ()=>{
+    pickedVendorId = null;
+    list.querySelectorAll('button').forEach(b=>b.classList.remove('selected'));
+    noneBtn.classList.add('selected');
+  });
+  list.appendChild(noneBtn);
+
+  vendors.forEach(v=>{
+    const btn = document.createElement('button');
+    btn.className = 'vendor-pick-btn' + (pickedVendorId===v.id?' selected':'');
+    btn.innerHTML = `<strong>${v.name}</strong>${v.contact?`<span style="font-size:0.72rem;color:var(--muted);margin-left:8px">${v.contact}</span>`:''}`;
+    btn.addEventListener('click', ()=>{
+      pickedVendorId = v.id;
+      list.querySelectorAll('button').forEach(b=>b.classList.remove('selected'));
+      btn.classList.add('selected');
+    });
+    list.appendChild(btn);
+  });
+
+  document.getElementById('vpick-save').style.display = 'block';
+  document.getElementById('vpick-overlay').classList.add('open');
+  document.getElementById('vpick-sheet').classList.add('open');
+}
+
+function closeVendorPicker() {
+  document.getElementById('vpick-overlay').classList.remove('open');
+  document.getElementById('vpick-sheet').classList.remove('open');
+  pickingItem = null;
+}
+
+document.getElementById('vpick-overlay').addEventListener('click', closeVendorPicker);
+document.getElementById('vpick-save').addEventListener('click', async ()=>{
+  if (!pickingItem) return;
+  const newMap = {...itemVendors};
+  if (pickedVendorId) newMap[pickingItem.id] = pickedVendorId;
+  else delete newMap[pickingItem.id];
+  await setDoc(doc(db,'order_config','item_vendors'), newMap);
+  showToast('거래처 저장됨 ✓');
+  closeVendorPicker();
+});
+
+// ── Manage vendors ────────────────────────────────────
+function renderManage() {
+  const ct = document.getElementById('content');
+  ct.innerHTML = '';
+
+  const card = document.createElement('div');
+  card.className = 'vendor-list-card';
+
+  const hdr = document.createElement('div');
+  hdr.className = 'vendor-list-hdr';
+  hdr.textContent = `거래처 목록 (${vendors.length})`;
+  card.appendChild(hdr);
+
+  if (!vendors.length) {
+    const e = document.createElement('div');
+    e.style.cssText='padding:24px;text-align:center;color:var(--muted);font-size:0.82rem';
+    e.textContent='거래처를 추가해주세요';
+    card.appendChild(e);
+  } else {
+    vendors.forEach(v=>{
+      const row = document.createElement('div');
+      row.className = 'vendor-row';
+      row.innerHTML=`
+        <div style="flex:1;min-width:0">
+          <div class="vendor-name">${v.name}</div>
+          ${v.contact?`<div class="vendor-sub">${v.contact}</div>`:''}
+        </div>
+        <button class="v-edit-btn">✏️</button>
+        <button class="v-del-btn">✕</button>
+      `;
+      row.querySelector('.v-edit-btn').addEventListener('click',()=>openVendorEdit(v));
+      row.querySelector('.v-del-btn').addEventListener('click',async()=>{
+        if(!confirm(`"${v.name}" 거래처를 삭제할까요?`))return;
+        await deleteDoc(doc(db,'vendors',v.id));
+        // Clean up item mappings
+        const newMap={...itemVendors};
+        Object.keys(newMap).forEach(k=>{if(newMap[k]===v.id)delete newMap[k];});
+        await setDoc(doc(db,'order_config','item_vendors'),newMap);
+        showToast('삭제됨');
+      });
+      card.appendChild(row);
+    });
+  }
+
+  // Add new vendor row
+  const addRow = document.createElement('div');
+  addRow.className = 'add-vendor-row';
+  addRow.innerHTML=`
+    <input class="add-vendor-input" id="new-vendor-name" placeholder="새 거래처 이름"/>
+    <button class="add-vendor-btn" id="new-vendor-btn">추가</button>
+  `;
+  card.appendChild(addRow);
+  ct.appendChild(card);
+
+  document.getElementById('new-vendor-btn').addEventListener('click', addVendor);
+  document.getElementById('new-vendor-name').addEventListener('keydown',e=>{if(e.key==='Enter')addVendor();});
+}
+
+async function addVendor() {
+  const inp = document.getElementById('new-vendor-name');
+  const name = inp.value.trim();
+  if (!name) { showToast('거래처 이름을 입력하세요'); return; }
+  if (vendors.find(v=>v.name===name)) { showToast('이미 있는 거래처예요'); return; }
+  await addDoc(collection(db,'vendors'), {name, contact:'', createdAt:Date.now()});
+  inp.value='';
+  showToast('추가됨 ✓');
+}
+
+// ── Vendor edit sheet ─────────────────────────────────
+let editingVendor = null;
+
+function openVendorEdit(v) {
+  editingVendor = v;
+  document.getElementById('vedit-title').textContent = '거래처 수정';
+  document.getElementById('vedit-name').value = v.name;
+  document.getElementById('vedit-contact').value = v.contact||'';
+  document.getElementById('vedit-overlay').classList.add('open');
+  document.getElementById('vedit-sheet').classList.add('open');
+}
+function closeVendorEdit() {
+  document.getElementById('vedit-overlay').classList.remove('open');
+  document.getElementById('vedit-sheet').classList.remove('open');
+  editingVendor = null;
+}
+document.getElementById('vedit-overlay').addEventListener('click', closeVendorEdit);
+document.getElementById('vedit-save').addEventListener('click', async ()=>{
+  if (!editingVendor) return;
+  const name = document.getElementById('vedit-name').value.trim();
+  const contact = document.getElementById('vedit-contact').value.trim();
+  if (!name) { showToast('이름을 입력하세요'); return; }
+  await updateDoc(doc(db,'vendors',editingVendor.id), {name, contact});
+  showToast('수정됨 ✓');
+  closeVendorEdit();
+});
+</script>
+<script>if('serviceWorker' in navigator){navigator.serviceWorker.register('/app/sw.js').catch(()=>{});}</script>
+</body>
+</html>
