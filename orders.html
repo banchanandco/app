@@ -119,6 +119,23 @@
     .vendor-pick-none{padding:11px 14px;border:1.5px dashed var(--border);border-radius:10px;background:transparent;font-family:'Noto Sans KR',sans-serif;font-size:0.85rem;color:var(--muted);cursor:pointer;text-align:left}
     .vendor-pick-none:active{background:var(--subtle)}
 
+    /* ORDERLIST */
+    .orderlist-card{background:var(--surface);border-radius:14px;border:1px solid var(--border);overflow:hidden}
+    .orderlist-hdr{padding:11px 16px;border-bottom:1px solid var(--subtle);display:flex;align-items:center;justify-content:space-between}
+    .orderlist-hdr-title{font-size:0.85rem;font-weight:700;color:var(--heading)}
+    .orderlist-actions{display:flex;gap:8px}
+    .orderlist-copy-btn{padding:7px 12px;border:1.5px solid var(--border);border-radius:8px;background:var(--surface);font-family:'Noto Sans KR',sans-serif;font-size:0.78rem;color:var(--body);cursor:pointer;display:flex;align-items:center;gap:5px}
+    .orderlist-copy-btn:active{background:var(--subtle)}
+    .orderlist-send-btn{padding:7px 12px;border:none;border-radius:8px;background:var(--accent);color:#fff;font-family:'Noto Sans KR',sans-serif;font-size:0.78rem;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:5px}
+    .orderlist-send-btn:active{background:var(--accent-dark)}
+    .orderlist-row{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-bottom:1px solid var(--subtle);font-size:0.85rem}
+    .orderlist-row:last-child{border-bottom:none}
+    .orderlist-name{color:var(--body);font-weight:500}
+    .orderlist-detail{font-size:0.72rem;color:var(--muted);margin-top:2px}
+    .orderlist-pct{font-family:'DM Mono',monospace;font-size:0.75rem;font-weight:700}
+    .orderlist-pct.urgent{color:var(--urgent)}
+    .orderlist-pct.warn{color:var(--warn)}
+    .orderlist-empty{padding:32px;text-align:center;color:var(--muted);font-size:0.82rem}
     #toast{position:fixed;bottom:20px;right:16px;background:var(--accent-dark);color:#fff;font-size:0.75rem;padding:7px 14px;border-radius:20px;opacity:0;transition:opacity .3s;z-index:999;pointer-events:none}
   </style>
 </head>
@@ -158,6 +175,7 @@
 <div class="tab-bar" id="tab-bar">
   <button class="tab-btn active" data-tab="all">전체</button>
   <!-- 거래처 탭은 동적으로 추가 -->
+  <button class="tab-btn" data-tab="orderlist" id="orderlist-tab-btn">📋 주문리스트</button>
   <button class="tab-btn manage-tab" data-tab="manage">⚙️ 거래처</button>
 </div>
 
@@ -317,6 +335,7 @@ function switchTab(tab) {
 // ── Main render ───────────────────────────────────────
 function render() {
   if (curTab === 'manage') { renderManage(); return; }
+  if (curTab === 'orderlist') { renderOrderList(); return; }
   renderOrders();
 }
 
@@ -341,7 +360,10 @@ function renderOrders() {
   sr.innerHTML=`
     <div class="sum-card"><div class="sum-num urgent">${uCount}</div><div class="sum-label">🚨 Urgent</div></div>
     <div class="sum-card"><div class="sum-num warn">${wCount}</div><div class="sum-label">🛒 주문요망</div></div>
-    <div class="sum-card"><div class="sum-num ok">${noVendor}</div><div class="sum-label">거래처 미지정</div></div>
+    <div class="sum-card" style="cursor:pointer;background:var(--accent-bg);border-color:var(--accent-light)" onclick="switchTab('orderlist')">
+      <div class="sum-num ok">${uCount+wCount}</div>
+      <div class="sum-label" style="color:var(--accent-dark)">📋 주문리스트</div>
+    </div>
   `;
   ct.appendChild(sr);
 
@@ -459,6 +481,127 @@ document.getElementById('vpick-save').addEventListener('click', async ()=>{
   showToast('거래처 저장됨 ✓');
   closeVendorPicker();
 });
+
+// ── Order List ───────────────────────────────────────
+function renderOrderList() {
+  const ct = document.getElementById('content');
+  ct.innerHTML = '';
+  const {urgent, warn} = getOrderItems();
+  const allItems = [...urgent.sort((a,b)=>a.pct-b.pct), ...warn.sort((a,b)=>a.pct-b.pct)];
+
+  const card = document.createElement('div');
+  card.className = 'orderlist-card';
+
+  // Header with copy + send buttons
+  const hdr = document.createElement('div');
+  hdr.className = 'orderlist-hdr';
+  hdr.innerHTML = `<span class="orderlist-hdr-title">주문 리스트 (${allItems.length})</span>`;
+
+  const actions = document.createElement('div');
+  actions.className = 'orderlist-actions';
+
+  const copyBtn = document.createElement('button');
+  copyBtn.className = 'orderlist-copy-btn';
+  copyBtn.innerHTML = '📋 복사';
+  copyBtn.addEventListener('click', () => {
+    const text = buildOrderListText(allItems);
+    navigator.clipboard.writeText(text).then(()=>showToast('복사됨 ✓')).catch(()=>{
+      // fallback
+      const ta = document.createElement('textarea');
+      ta.value = text; document.body.appendChild(ta);
+      ta.select(); document.execCommand('copy');
+      document.body.removeChild(ta); showToast('복사됨 ✓');
+    });
+  });
+
+  const sendBtn = document.createElement('button');
+  sendBtn.className = 'orderlist-send-btn';
+  sendBtn.innerHTML = '🛍 쇼핑리스트로';
+  sendBtn.addEventListener('click', async () => {
+    if (!allItems.length) { showToast('주문할 항목이 없어요'); return; }
+    sendBtn.disabled = true; sendBtn.textContent = '전송 중...';
+    // Save to Firestore order_list collection for shopping page to read
+    const listData = allItems.map(i => ({
+      id: i.id, name: i.name, pct: i.pct,
+      remaining: (i.remaining!==undefined&&i.remaining!==null)?i.remaining:i.qty,
+      qty: i.qty, unit: i.unit,
+      secLabel: i.secLabel, secIcon: i.secIcon,
+      isUrgent: i.pct <= 15,
+    }));
+    await setDoc(doc(db, 'order_config', 'pending_shopping'), {
+      items: listData, updatedAt: Date.now()
+    });
+    showToast(`${allItems.length}개 쇼핑리스트로 전송됨 ✓`);
+    sendBtn.disabled = false; sendBtn.innerHTML = '🛍 쇼핑리스트로';
+  });
+
+  actions.appendChild(copyBtn);
+  actions.appendChild(sendBtn);
+  hdr.appendChild(actions);
+  card.appendChild(hdr);
+
+  if (!allItems.length) {
+    card.innerHTML += '<div class="orderlist-empty">🎉 주문할 항목이 없어요!</div>';
+  } else {
+    // Urgent first, then warn
+    const urgItems = allItems.filter(i=>i.pct<=15);
+    const warnItems = allItems.filter(i=>i.pct>15);
+
+    if (urgItems.length) {
+      const secHdr = document.createElement('div');
+      secHdr.style.cssText = 'padding:6px 16px;font-size:0.72rem;font-weight:700;color:var(--urgent);background:var(--urgent-bg);border-bottom:1px solid var(--border)';
+      secHdr.textContent = '🚨 Urgent';
+      card.appendChild(secHdr);
+      urgItems.forEach(item => card.appendChild(mkOrderListRow(item)));
+    }
+    if (warnItems.length) {
+      const secHdr = document.createElement('div');
+      secHdr.style.cssText = 'padding:6px 16px;font-size:0.72rem;font-weight:700;color:var(--warn);background:var(--warn-bg);border-bottom:1px solid var(--border)';
+      secHdr.textContent = '🛒 주문 요망';
+      card.appendChild(secHdr);
+      warnItems.forEach(item => card.appendChild(mkOrderListRow(item)));
+    }
+  }
+  ct.appendChild(card);
+}
+
+function mkOrderListRow(item) {
+  const r = (item.remaining!==undefined&&item.remaining!==null)?item.remaining:item.qty;
+  const pctCls = item.pct<=15?'urgent':'warn';
+  const row = document.createElement('div');
+  row.className = 'orderlist-row';
+  row.innerHTML = `
+    <div>
+      <div class="orderlist-name">${item.name}</div>
+      <div class="orderlist-detail">${item.secIcon} ${item.secLabel} · 잔여 ${r} ${item.unit}</div>
+    </div>
+    <span class="orderlist-pct ${pctCls}">${item.pct.toFixed(0)}%</span>
+  `;
+  return row;
+}
+
+function buildOrderListText(items) {
+  const urgent = items.filter(i=>i.pct<=15);
+  const warn   = items.filter(i=>i.pct>15);
+  let lines = [`📋 주문 리스트 (${new Date().toLocaleDateString('ko-KR')})`, ''];
+  if (urgent.length) {
+    lines.push('🚨 Urgent');
+    urgent.forEach(i => {
+      const r = (i.remaining!==undefined&&i.remaining!==null)?i.remaining:i.qty;
+      lines.push(`  • ${i.name} (잔여 ${r}${i.unit}, ${i.pct.toFixed(0)}%)`);
+    });
+    lines.push('');
+  }
+  if (warn.length) {
+    lines.push('🛒 주문 요망');
+    warn.forEach(i => {
+      const r = (i.remaining!==undefined&&i.remaining!==null)?i.remaining:i.qty;
+      lines.push(`  • ${i.name} (잔여 ${r}${i.unit}, ${i.pct.toFixed(0)}%)`);
+    });
+  }
+  return lines.join('
+');
+}
 
 // ── Manage vendors ────────────────────────────────────
 function renderManage() {
