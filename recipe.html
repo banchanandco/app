@@ -126,12 +126,49 @@
     /* NOTES */
     .detail-notes{font-size:0.88rem;color:var(--body);line-height:1.7;white-space:pre-wrap;padding:14px}
 
+
+    /* DRAWER */
+    .drawer-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.35);z-index:300;opacity:0;pointer-events:none;transition:opacity .25s}
+    .drawer-overlay.open{opacity:1;pointer-events:all}
+    .drawer{position:fixed;left:-280px;top:0;bottom:0;width:280px;background:var(--surface);z-index:301;transition:left .25s;display:flex;flex-direction:column;box-shadow:4px 0 20px rgba(0,0,0,0.12)}
+    .drawer.open{left:0}
+    .drawer-header{background:var(--accent);padding:44px 20px 20px;display:flex;flex-direction:column;gap:6px}
+    .drawer-avatar{width:46px;height:46px;border-radius:50%;border:2px solid rgba(255,255,255,0.4);object-fit:cover;margin-bottom:4px}
+    .drawer-name{font-size:1rem;font-weight:700;color:#fff}
+    .drawer-email{font-size:0.73rem;color:rgba(255,255,255,0.65)}
+    .drawer-menu{flex:1;padding:10px 0;overflow-y:auto}
+    .drawer-item{display:flex;align-items:center;gap:14px;padding:14px 20px;font-size:0.9rem;color:var(--body);cursor:pointer}
+    .drawer-item:active{background:var(--accent-bg)}
+    .drawer-item.active{color:var(--accent-dark);font-weight:600;background:var(--accent-bg)}
+    .drawer-item .di-icon{font-size:1.2rem}
+    .drawer-logout{margin:0 16px 20px;padding:12px;border:1.5px solid var(--border);border-radius:10px;background:transparent;font-family:'Noto Sans KR',sans-serif;font-size:0.85rem;color:var(--muted);cursor:pointer;width:calc(100% - 32px)}
+    .hamburger-btn{background:none;border:none;cursor:pointer;padding:4px;display:flex;flex-direction:column;gap:5px;margin-right:4px}
+    .hamburger-btn span{display:block;width:22px;height:2px;background:#fff;border-radius:2px}
     #toast{position:fixed;bottom:20px;right:16px;background:var(--accent-dark);color:#fff;font-size:0.75rem;padding:7px 14px;border-radius:20px;opacity:0;transition:opacity .3s;z-index:999;pointer-events:none}
   </style>
 </head>
 <body>
 
 <!-- LOCK -->
+<div class="drawer-overlay" id="drawer-overlay"></div>
+<div class="drawer" id="drawer">
+  <div class="drawer-header">
+    <img class="drawer-avatar" id="drawer-avatar" src="" alt=""/>
+    <div class="drawer-name" id="drawer-name"></div>
+    <div class="drawer-email" id="drawer-email"></div>
+  </div>
+  <div class="drawer-menu">
+    <div class="drawer-item" onclick="location.href='main.html'"><span class="di-icon">🏠</span> 홈</div>
+    <div class="drawer-item" onclick="location.href='inventory.html'"><span class="di-icon">📋</span> 재고 관리</div>
+    <div class="drawer-item" onclick="location.href='orders.html'"><span class="di-icon">🛒</span> 주문 관리</div>
+    <div class="drawer-item" onclick="location.href='statistics.html'"><span class="di-icon">📊</span> 통계</div>
+    <div class="drawer-item" onclick="location.href='schedule.html'"><span class="di-icon">📅</span> 스케줄</div>
+    <div class="drawer-item active" id="drawer-active-item"><span class="di-icon">📖</span> 레시피</div>
+    
+  </div>
+  <button class="drawer-logout" id="logout-btn-drawer">로그아웃</button>
+</div>
+
 <div id="lock-screen">
   <div class="lock-icon">🔒</div>
   <h2>레시피</h2>
@@ -153,7 +190,7 @@
 <div id="app" style="display:none">
   <header>
     <div class="header-left">
-      <button class="back-btn" onclick="history.back()">‹</button>
+      <button class="hamburger-btn" id="hamburger-btn"><span></span><span></span><span></span></button><button class="back-btn" onclick="history.back()">‹</button>
       <h1>📖 레시피</h1>
     </div>
     <button class="lock-btn" onclick="lockApp()">잠금</button>
@@ -285,6 +322,14 @@ if(sessionStorage.getItem('recipe_auth')==='1'){
   });
 }
 window.lockApp=()=>{sessionStorage.removeItem('recipe_auth');location.reload();};
+
+  // Drawer
+  const _drawerEl = document.getElementById('drawer');
+  const _drawerOvEl = document.getElementById('drawer-overlay');
+  document.getElementById('hamburger-btn').addEventListener('click',()=>{_drawerEl.classList.add('open');_drawerOvEl.classList.add('open');});
+  _drawerOvEl.addEventListener('click',()=>{_drawerEl.classList.remove('open');_drawerOvEl.classList.remove('open');});
+  document.getElementById('logout-btn-drawer').addEventListener('click',async()=>{await signOut(_auth);location.reload();});
+  onAuthStateChanged(_auth, user=>{ if(user){ document.getElementById('drawer-avatar').src=user.photoURL||''; document.getElementById('drawer-name').textContent=user.displayName||''; document.getElementById('drawer-email').textContent=user.email||''; }});
 
 // ── Toast ─────────────────────────────────────────────
 function showToast(msg){const el=document.getElementById('toast');el.textContent=msg;el.style.opacity='1';clearTimeout(el._t);el._t=setTimeout(()=>el.style.opacity='0',2000);}
