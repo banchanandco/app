@@ -588,7 +588,7 @@ function buildOrderListText(items) {
     lines.push('🚨 Urgent');
     urgent.forEach(i => {
       const r = (i.remaining!==undefined&&i.remaining!==null)?i.remaining:i.qty;
-      lines.push(`  • ${i.name} (잔여 ${r}${i.unit}, ${i.pct.toFixed(0)}%)`);
+      lines.push('  - ' + i.name + ' (잔여 ' + r + i.unit + ', ' + i.pct.toFixed(0) + '%)');
     });
     lines.push('');
   }
@@ -596,11 +596,10 @@ function buildOrderListText(items) {
     lines.push('🛒 주문 요망');
     warn.forEach(i => {
       const r = (i.remaining!==undefined&&i.remaining!==null)?i.remaining:i.qty;
-      lines.push(`  • ${i.name} (잔여 ${r}${i.unit}, ${i.pct.toFixed(0)}%)`);
+      lines.push('  - ' + i.name + ' (잔여 ' + r + i.unit + ', ' + i.pct.toFixed(0) + '%)');
     });
   }
-  return lines.join('
-');
+  return lines.join('\n');
 }
 
 // ── Manage vendors ────────────────────────────────────
