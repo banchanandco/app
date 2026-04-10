@@ -518,12 +518,27 @@ function renderInbound(){
           inboundQty=rawQty;inboundUnit=val.inUnit||'개';
           stockQty=rawQty;stockUnit=val.inUnit||'개';
         }
-        await addDoc(collection(db,`inv_${sec.id}`),{
-          name,qty:stockQty,unit:stockUnit,remaining:stockQty,
-          inboundQty,inboundUnit,
-          createdAt:Date.now(),
-          addedBy:currentUser?.displayName||currentUser?.email||'',
-        });
+        // 같은 이름+단위 품목이 있으면 수량 합산, 없으면 새로 생성
+        const existing = cache[sec.id].find(i=>i.name===name && i.unit===stockUnit);
+        if(existing){
+          const newQty = (existing.qty||0) + stockQty;
+          const newRemaining = (existing.remaining!==undefined&&existing.remaining!==null?existing.remaining:existing.qty) + stockQty;
+          await updateDoc(doc(db,`inv_${sec.id}`,existing.id),{
+            qty: newQty,
+            remaining: newRemaining,
+            inboundQty: inboundQty,
+            inboundUnit: inboundUnit,
+            updatedAt: Date.now(),
+            addedBy: currentUser?.displayName||currentUser?.email||'',
+          });
+        } else {
+          await addDoc(collection(db,`inv_${sec.id}`),{
+            name,qty:stockQty,unit:stockUnit,remaining:stockQty,
+            inboundQty,inboundUnit,
+            createdAt:Date.now(),
+            addedBy:currentUser?.displayName||currentUser?.email||'',
+          });
+        }
         saved++;
       }
       if(!saved){showToast('수량을 입력하세요');return;}
