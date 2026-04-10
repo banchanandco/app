@@ -158,13 +158,17 @@ onAuthStateChanged(auth, user => {
   document.getElementById('drawer-name').textContent  = user.displayName||'';
   document.getElementById('drawer-email').textContent = user.email||'';
 
+  const loadedSecs = new Set();
   SECTIONS.forEach(sec => {
     const q = query(collection(db, `inv_${sec.id}`), orderBy('createdAt'));
     onSnapshot(q, snap => {
       cache[sec.id] = snap.docs.map(d => ({id:d.id,...d.data()}));
-      loaded++;
-      if (loaded >= SECTIONS.length) render();
-    }, () => { loaded++; if(loaded>=SECTIONS.length) render(); });
+      loadedSecs.add(sec.id);
+      if (loadedSecs.size >= SECTIONS.length) render();
+    }, () => {
+      loadedSecs.add(sec.id);
+      if (loadedSecs.size >= SECTIONS.length) render();
+    });
   });
 });
 
