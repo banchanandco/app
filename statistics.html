@@ -14,8 +14,6 @@
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
     :root{--accent:#9caf88;--accent-dark:#7a9068;--accent-bg:#f0f5ec;--accent-light:#c8d9bc;--bg:#f5f4f0;--surface:#fff;--border:#dedad3;--subtle:#eceae5;--muted:#9a9488;--body:#4a4540;--heading:#2a2520;--urgent:#e05555;--warn:#e09020}
     body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--body);min-height:100vh;padding-bottom:40px}
-    
-    /* HEADER */
     header{background:var(--accent);color:#fff;padding:14px 16px;position:sticky;top:0;z-index:200;display:flex;align-items:center;justify-content:space-between}
     .header-left{display:flex;align-items:center;gap:10px}
     .hamburger{background:none;border:none;cursor:pointer;padding:4px;display:flex;flex-direction:column;gap:5px}
@@ -23,8 +21,6 @@
     .back-btn{background:none;border:none;color:#fff;font-size:1.3rem;cursor:pointer;line-height:1}
     header h1{font-size:1.05rem;font-weight:700;color:#fff}
     .user-avatar{width:28px;height:28px;border-radius:50%;border:2px solid rgba(255,255,255,0.4);object-fit:cover}
-
-    /* DRAWER */
     .drawer-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.35);z-index:300;opacity:0;pointer-events:none;transition:opacity .25s}
     .drawer-overlay.open{opacity:1;pointer-events:all}
     .drawer{position:fixed;left:-280px;top:0;bottom:0;width:280px;background:var(--surface);z-index:301;transition:left .25s;display:flex;flex-direction:column;box-shadow:4px 0 20px rgba(0,0,0,0.12)}
@@ -39,26 +35,19 @@
     .drawer-item.active{color:var(--accent-dark);font-weight:600;background:var(--accent-bg)}
     .drawer-item .di-icon{font-size:1.2rem}
     .drawer-logout{margin:0 16px 20px;padding:12px;border:1.5px solid var(--border);border-radius:10px;background:transparent;font-family:'Noto Sans KR',sans-serif;font-size:0.85rem;color:var(--muted);cursor:pointer;width:calc(100% - 32px)}
-
-    /* TABS & PERIOD */
     .sec-tab-bar{display:flex;background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:53px;z-index:100}
     .sec-tab{flex:1;padding:13px 6px;border:none;background:transparent;font-family:'Noto Sans KR',sans-serif;font-size:0.85rem;font-weight:600;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent}
     .sec-tab.active{color:var(--accent-dark);border-bottom-color:var(--accent)}
     .period-bar{display:flex;gap:6px;padding:12px 14px 0}
     .period-btn{padding:6px 16px;border-radius:20px;border:1.5px solid var(--border);background:transparent;font-family:'Noto Sans KR',sans-serif;font-size:0.78rem;color:var(--muted);cursor:pointer}
     .period-btn.active{background:var(--accent);border-color:var(--accent);color:#fff}
-
-    /* CONTENT */
     .content{padding:12px 14px;display:flex;flex-direction:column;gap:12px}
-    .period-label{font-size:0.78rem;color:var(--muted);padding:4px 2px}
     .sum-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
     .sum-card{background:var(--surface);border-radius:12px;border:1px solid var(--border);padding:14px 10px;text-align:center}
     .sum-num{font-family:'DM Mono',monospace;font-size:1.3rem;font-weight:600;color:var(--accent-dark);line-height:1}
     .sum-num.warn{color:var(--warn)}
     .sum-num.urgent{color:var(--urgent)}
     .sum-label{font-size:0.67rem;color:var(--muted);margin-top:4px}
-
-    /* CARDS */
     .card{background:var(--surface);border-radius:14px;border:1px solid var(--border);overflow:hidden}
     .card-hdr{padding:11px 16px;border-bottom:1px solid var(--subtle);font-size:0.82rem;font-weight:700;color:var(--heading)}
     .bar-wrap{padding:10px 16px;border-bottom:1px solid var(--subtle)}
@@ -69,8 +58,7 @@
     .bar-fill.in{background:var(--accent)}
     .bar-fill.out{background:var(--warn)}
     .bar-fill.stock{background:var(--accent-dark)}
-
-    .list-row{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-bottom:1px solid var(--subtle);font-size:0.84rem}
+    .list-row{display:flex;align-items:center;justify-content:space-between;padding:9px 16px;border-bottom:1px solid var(--subtle);font-size:0.84rem}
     .list-row:last-child{border-bottom:none}
     .list-name{color:var(--body);flex:1}
     .list-val{font-family:'DM Mono',monospace;font-size:0.78rem;white-space:nowrap;margin-left:8px}
@@ -78,11 +66,11 @@
     .list-val.warn{color:var(--warn)}
     .list-val.urgent{color:var(--urgent)}
     .sec-divider{font-size:0.72rem;font-weight:700;color:var(--muted);background:var(--subtle);padding:5px 16px;border-bottom:1px solid var(--subtle)}
-    .empty{padding:40px;text-align:center;color:var(--muted);font-size:0.82rem}
+    .period-label{font-size:0.78rem;color:var(--muted);padding:4px 2px}
+    .empty{padding:28px;text-align:center;color:var(--muted);font-size:0.82rem}
   </style>
 </head>
 <body>
-
 <div class="drawer-overlay" id="drawer-overlay"></div>
 <div class="drawer" id="drawer">
   <div class="drawer-header">
@@ -100,32 +88,28 @@
   </div>
   <button class="drawer-logout" id="logout-btn">로그아웃</button>
 </div>
-
 <header>
   <div class="header-left">
     <button class="hamburger" id="hamburger-btn"><span></span><span></span><span></span></button>
     <button class="back-btn" onclick="location.href='main.html'">‹</button>
-    <h1>통계 분석</h1>
+    <h1>통계</h1>
   </div>
   <div class="header-right">
     <img class="user-avatar" id="header-avatar" src="" alt=""/>
   </div>
 </header>
-
 <div class="sec-tab-bar">
-  <button class="sec-tab active" data-sec="inbound">입고량</button>
-  <button class="sec-tab" data-sec="stock">재고율</button>
-  <button class="sec-tab" data-sec="outbound">출고량</button>
+  <button class="sec-tab active" data-sec="inbound">📥 입고</button>
+  <button class="sec-tab" data-sec="stock">📦 재고</button>
+  <button class="sec-tab" data-sec="outbound">📤 출고</button>
 </div>
-
 <div class="period-bar">
   <button class="period-btn active" data-p="day">오늘</button>
-  <button class="period-btn" data-p="week">이번주</button>
-  <button class="period-btn" data-p="month">이번달</button>
+  <button class="period-btn" data-p="week">주간</button>
+  <button class="period-btn" data-p="month">월간</button>
 </div>
-
 <div class="content" id="content">
-  <div class="empty">데이터를 불러오고 있습니다...</div>
+  <div class="empty">데이터 로딩 중...</div>
 </div>
 
 <script type="module">
@@ -134,188 +118,165 @@ import { getAuth, signOut, onAuthStateChanged } from "https://www.gstatic.com/fi
 import { getFirestore, collection, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const app = initializeApp({
-  apiKey: "AIzaSyArW3yhj81OJpOkCEYfyaelgcdo8o_IAPw",
-  authDomain: "banchan-inventory-144bd.firebaseapp.com",
-  projectId: "banchan-inventory-144bd",
-  storageBucket: "banchan-inventory-144bd.firebasestorage.app",
-  messagingSenderId: "1022526862273",
-  appId: "1:1022526862273:web:12a025d9db24c7c6b83540"
+  apiKey:"AIzaSyArW3yhj81OJpOkCEYfyaelgcdo8o_IAPw",
+  authDomain:"banchan-inventory-144bd.firebaseapp.com",
+  projectId:"banchan-inventory-144bd",
+  storageBucket:"banchan-inventory-144bd.firebasestorage.app",
+  messagingSenderId:"1022526862273",
+  appId:"1:1022526862273:web:12a025d9db24c7c6b83540"
 });
 const auth = getAuth(app);
 const db = getFirestore(app);
 
 const SECTIONS = [
-  {id:'food', label:'식재료', icon:'🥩'},
-  {id:'container', label:'컨테이너', icon:'📦'},
-  {id:'misc', label:'소모품', icon:'🪣'},
-  {id:'clean', label:'청소', icon:'🧹'},
-  {id:'other', label:'기타', icon:'📂'}
+  {id:'food',label:'식재료',icon:'🥩'},
+  {id:'container',label:'컨테이너',icon:'📦'},
+  {id:'misc',label:'소모품',icon:'🪣'},
+  {id:'clean',label:'청소',icon:'🧹'},
+  {id:'other',label:'기타',icon:'📂'},
 ];
 
 let cache = {};
 let curSec = 'inbound';
 let curPeriod = 'day';
 
-// Drawer UI
-document.getElementById('hamburger-btn').addEventListener('click',()=>{
-  document.getElementById('drawer').classList.add('open');
-  document.getElementById('drawer-overlay').classList.add('open');
-});
-document.getElementById('drawer-overlay').addEventListener('click',()=>{
-  document.getElementById('drawer').classList.remove('open');
-  document.getElementById('drawer-overlay').classList.remove('open');
-});
-document.getElementById('logout-btn').addEventListener('click',async()=>{
-  await signOut(auth); location.href='index.html';
-});
+// Drawer
+document.getElementById('hamburger-btn').addEventListener('click',()=>{document.getElementById('drawer').classList.add('open');document.getElementById('drawer-overlay').classList.add('open');});
+document.getElementById('drawer-overlay').addEventListener('click',()=>{document.getElementById('drawer').classList.remove('open');document.getElementById('drawer-overlay').classList.remove('open');});
+document.getElementById('logout-btn').addEventListener('click',async()=>{await signOut(auth);location.href='index.html';});
 
-// Tabs & Period Filters
-document.querySelectorAll('.sec-tab').forEach(b => b.addEventListener('click', () => {
-  document.querySelectorAll('.sec-tab').forEach(x => x.classList.remove('active'));
-  b.classList.add('active'); curSec = b.dataset.sec; render();
-}));
-document.querySelectorAll('.period-btn').forEach(b => b.addEventListener('click', () => {
-  document.querySelectorAll('.period-btn').forEach(x => x.classList.remove('active'));
-  b.classList.add('active'); curPeriod = b.dataset.p; render();
-}));
+// Tabs
+document.querySelectorAll('.sec-tab').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('.sec-tab').forEach(x=>x.classList.remove('active'));b.classList.add('active');curSec=b.dataset.sec;render();}));
+document.querySelectorAll('.period-btn').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('.period-btn').forEach(x=>x.classList.remove('active'));b.classList.add('active');curPeriod=b.dataset.p;render();}));
 
-// Auth Listener
+// Auth
 onAuthStateChanged(auth, user => {
   if (!user) { location.href='index.html'; return; }
-  document.getElementById('header-avatar').src = user.photoURL || '';
-  document.getElementById('drawer-avatar').src  = user.photoURL || '';
-  document.getElementById('drawer-name').textContent  = user.displayName || '';
-  document.getElementById('drawer-email').textContent = user.email || '';
-  initData();
+  document.getElementById('header-avatar').src = user.photoURL||'';
+  document.getElementById('drawer-avatar').src  = user.photoURL||'';
+  document.getElementById('drawer-name').textContent  = user.displayName||'';
+  document.getElementById('drawer-email').textContent = user.email||'';
+  startListeners();
 });
 
-function initData() {
-  let loaded = 0;
+let started = false;
+function startListeners() {
+  if (started) return;
+  started = true;
+  let loadedCount = 0;
   SECTIONS.forEach(sec => {
-    onSnapshot(query(collection(db, 'inv_' + sec.id), orderBy('createdAt')), snap => {
-      cache[sec.id] = snap.docs.map(d => ({id: d.id, ...d.data()}));
-      loaded++;
-      if (loaded >= SECTIONS.length) render();
-    }, err => {
-      console.error(sec.id, err);
-      const ct = document.getElementById('content');
-      ct.innerHTML = `<div class="empty">데이터 로딩 실패: 권한 또는 인덱스를 확인하세요.</div>`;
-    });
+    onSnapshot(query(collection(db, 'inv_'+sec.id), orderBy('createdAt')), snap => {
+        cache[sec.id] = snap.docs.map(d=>({id:d.id,...d.data()}));
+        loadedCount++;
+        render();
+      }, err => {
+        console.error(sec.id, err);
+        loadedCount++;
+        if (loadedCount >= SECTIONS.length) render();
+      }
+    );
   });
 }
 
 function getRange() {
   const now = new Date();
-  let s = new Date(now);
-  if (curPeriod === 'day') s.setHours(0,0,0,0);
-  else if (curPeriod === 'week') { s.setDate(now.getDate() - now.getDay()); s.setHours(0,0,0,0); }
-  else { s.setDate(1); s.setHours(0,0,0,0); }
-  return s.getTime();
+  let s,e;
+  if (curPeriod==='day'){s=new Date(now);s.setHours(0,0,0,0);e=new Date(now);e.setHours(23,59,59,999);}
+  else if (curPeriod==='week'){const d=now.getDay();s=new Date(now);s.setDate(now.getDate()-d+(d===0?-6:1));s.setHours(0,0,0,0);e=new Date(s);e.setDate(s.getDate()+6);e.setHours(23,59,59,999);}
+  else{s=new Date(now.getFullYear(),now.getMonth(),1);e=new Date(now.getFullYear(),now.getMonth()+1,0,23,59,59,999);}
+  return {s:s.getTime(),e:e.getTime()};
 }
+
+function fmt(n){if(!n && n!==0)return '0';const v=parseFloat(n);return Number.isInteger(v)?v:v.toFixed(1);}
 
 function render() {
   const ct = document.getElementById('content');
   ct.innerHTML = '';
   const range = getRange();
   
-  const pl = document.createElement('div');
-  pl.className = 'period-label';
-  pl.textContent = (curPeriod==='day'?'오늘':curPeriod==='week'?'이번주':'이번달') + ' 기준 분석';
-  ct.appendChild(pl);
-
-  if (curSec === 'inbound') renderInbound(ct, range);
-  else if (curSec === 'stock') renderStock(ct);
+  if (curSec==='inbound') renderInbound(ct, range);
+  else if (curSec==='stock') renderStock(ct);
   else renderOutbound(ct, range);
 }
 
-function renderInbound(ct, range) {
-  const all = SECTIONS.flatMap(s => cache[s.id].filter(i => i.createdAt >= range).map(i => ({...i, sec: s})));
-  const total = all.reduce((acc, i) => acc + (parseFloat(i.qty) || 0), 0);
-  
-  ct.appendChild(createGrid(
-    {v: all.length, l: '입고 건수'},
-    {v: total.toFixed(1), l: '총 입고량'},
-    {v: new Set(all.map(i=>i.sec.id)).size, l: '카테고리'}
-  ));
-
-  const card = createCard('카테고리별 입고 비율');
-  SECTIONS.forEach(s => {
-    const items = all.filter(i => i.sec.id === s.id);
-    if (!items.length) return;
-    const sTotal = items.reduce((acc, i) => acc + (parseFloat(i.qty) || 0), 0);
-    card.appendChild(createBar(`${s.icon} ${s.label}`, `${items.length}건 · ${sTotal.toFixed(1)}`, (sTotal/total)*100, 'in'));
-  });
-  if (!all.length) card.appendChild(createEmpty('이 기간에 입고된 내역이 없습니다.'));
-  ct.appendChild(card);
-}
-
-function renderStock(ct) {
-  const all = SECTIONS.flatMap(s => cache[s.id].map(i => ({...i, sec: s})));
-  const warn = all.filter(i => { const p=(i.remaining/i.qty)*100; return p > 15 && p <= 40; }).length;
-  const urgent = all.filter(i => (i.remaining/i.qty)*100 <= 15).length;
-
-  ct.appendChild(createGrid(
-    {v: all.length, l: '전체 품목'},
-    {v: warn, l: '주문 요망', c: 'warn'},
-    {v: urgent, l: '긴급 주문', c: 'urgent'}
-  ));
-
-  const card = createCard('평균 재고율');
-  SECTIONS.forEach(s => {
-    const items = cache[s.id];
-    if (!items.length) return;
-    const avg = items.reduce((acc, i) => acc + (i.remaining/i.qty)*100, 0) / items.length;
-    card.appendChild(createBar(`${s.icon} ${s.label}`, `${items.length}개 · 평균 ${avg.toFixed(0)}%`, avg, 'stock'));
-  });
-  ct.appendChild(card);
-}
-
-function renderOutbound(ct, range) {
-  const all = SECTIONS.flatMap(s => cache[s.id].filter(i => i.createdAt >= range).map(i => {
-    const out = Math.max(0, i.qty - i.remaining);
-    return {...i, outQty: out, sec: s};
-  })).filter(i => i.outQty > 0);
-  
-  const total = all.reduce((acc, i) => acc + i.outQty, 0);
-  ct.appendChild(createGrid(
-    {v: all.length, l: '출고 품목'},
-    {v: total.toFixed(1), l: '총 출고량'},
-    {v: all.length > 0 ? (total/all.length).toFixed(1) : 0, l: '평균 출고'}
-  ));
-
-  const card = createCard('많이 사용된 품목 (TOP 5)');
-  all.sort((a,b) => b.outQty - a.outQty).slice(0,5).forEach(i => {
-    card.appendChild(createRow(i.name, `${i.outQty.toFixed(1)} ${i.unit} 사용`, 'warn'));
-  });
-  if (!all.length) card.appendChild(createEmpty('이 기간에 출고된 내역이 없습니다.'));
-  ct.appendChild(card);
-}
-
 // UI Components
-function createGrid(a,b,c) {
-  const g = document.createElement('div'); g.className='sum-grid';
-  [a,b,c].forEach(x => {
-    const d=document.createElement('div'); d.className='sum-card';
-    d.innerHTML=`<div class="sum-num ${x.c||''}">${x.v}</div><div class="sum-label">${x.l}</div>`;
+function createGrid(a,b,c){
+  const g=document.createElement('div');g.className='sum-grid';
+  [a,b,c].forEach(x=>{
+    const d=document.createElement('div');d.className='sum-card';
+    d.innerHTML=`<div class="sum-num ${x.cls||''}">${x.v}</div><div class="sum-label">${x.l}</div>`;
     g.appendChild(d);
   });
   return g;
 }
 function createCard(title){
-  const c=document.createElement('div'); c.className='card';
+  const c=document.createElement('div');c.className='card';
   c.innerHTML=`<div class="card-hdr">${title}</div>`; return c;
 }
-function createBar(label, val, pct, type){
-  const w=document.createElement('div'); w.className='bar-wrap';
+function createBar(label,val,pct,type){
+  const w=document.createElement('div');w.className='bar-wrap';
   w.innerHTML=`<div class="bar-label"><span>${label}</span><span>${val}</span></div><div class="bar-bg"><div class="bar-fill ${type}" style="width:${Math.min(pct,100)}%"></div></div>`;
   return w;
 }
-function createRow(name, val, cls){
-  const r=document.createElement('div'); r.className='list-row';
+function createRow(name,val,cls){
+  const r=document.createElement('div');r.className='list-row';
   r.innerHTML=`<span class="list-name">${name}</span><span class="list-val ${cls}">${val}</span>`; return r;
 }
-function createEmpty(msg){
-  const d=document.createElement('div'); d.className='empty'; d.textContent=msg; return d;
+
+function renderInbound(ct, range) {
+  const items = SECTIONS.flatMap(sec => (cache[sec.id] || []).filter(i => i.createdAt >= range.s && i.createdAt <= range.e).map(i=>({...i, sec})));
+  const totalQty = items.reduce((acc, i) => acc + (parseFloat(i.qty) || 0), 0);
+  
+  ct.appendChild(createGrid({v:items.length,l:'입고 건수'},{v:fmt(totalQty),l:'총 입고량'},{v:new Set(items.map(i=>i.sec.id)).size,l:'카테고리'}));
+  
+  const card = createCard('카테고리별 입고 비율');
+  SECTIONS.forEach(sec => {
+    const sItems = items.filter(i => i.sec.id === sec.id);
+    if (!sItems.length) return;
+    const sQty = sItems.reduce((acc, i) => acc + (parseFloat(i.qty) || 0), 0);
+    card.appendChild(createBar(`${sec.icon} ${sec.label}`, `${sItems.length}건 · ${fmt(sQty)}`, (sQty/(totalQty||1))*100, 'in'));
+  });
+  if(!items.length) card.appendChild(document.createRange().createContextualFragment('<div class="empty">데이터가 없습니다</div>'));
+  ct.appendChild(card);
+}
+
+function renderStock(ct) {
+  const all = SECTIONS.flatMap(sec => (cache[sec.id] || []).map(i=>({...i, sec})));
+  const getPct = i => {
+    const rem = (i.remaining !== undefined) ? i.remaining : i.qty;
+    return i.qty > 0 ? (rem/i.qty)*100 : 0;
+  };
+  const warn = all.filter(i => { const p=getPct(i); return p > 15 && p <= 40; }).length;
+  const urgent = all.filter(i => getPct(i) <= 15).length;
+  
+  ct.appendChild(createGrid({v:all.length,l:'품목 수'},{v:warn,l:'주문 요망',cls:'warn'},{v:urgent,l:'긴급 주문',cls:'urgent'}));
+  
+  const card = createCard('카테고리별 재고율');
+  SECTIONS.forEach(sec => {
+    const its = cache[sec.id] || [];
+    if (!its.length) return;
+    const avg = its.reduce((acc, i) => acc + getPct(i), 0) / its.length;
+    card.appendChild(createBar(`${sec.icon} ${sec.label}`, `${its.length}개 · 평균 ${avg.toFixed(0)}%`, avg, 'stock'));
+  });
+  ct.appendChild(card);
+}
+
+function renderOutbound(ct, range) {
+  const allInPeriod = SECTIONS.flatMap(sec => (cache[sec.id] || []).filter(i => i.createdAt >= range.s && i.createdAt <= range.e).map(i=>({...i, sec})));
+  const items = allInPeriod.map(i => {
+    const rem = (i.remaining !== undefined) ? i.remaining : i.qty;
+    return {...i, outQty: Math.max(0, i.qty - rem)};
+  }).filter(i => i.outQty > 0);
+
+  const totalOut = items.reduce((acc, i) => acc + i.outQty, 0);
+  ct.appendChild(createGrid({v:items.length,l:'출고 품목'},{v:fmt(totalOut),l:'총 출고량'},{v:new Set(items.map(i=>i.sec.id)).size,l:'카테고리'}));
+  
+  const card = createCard('많이 사용된 품목');
+  items.sort((a,b)=>b.outQty - a.outQty).slice(0,10).forEach(i => {
+    card.appendChild(createRow(i.name, `${fmt(i.outQty)} ${i.unit} 출고`, 'warn'));
+  });
+  if(!items.length) card.appendChild(document.createRange().createContextualFragment('<div class="empty">출고 데이터가 없습니다</div>'));
+  ct.appendChild(card);
 }
 </script>
 </body>
