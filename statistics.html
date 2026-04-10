@@ -7,21 +7,13 @@
   <link rel="manifest" href="manifest.json"/>
   <meta name="theme-color" content="#9caf88"/>
   <meta name="apple-mobile-web-app-capable" content="yes"/>
-  <meta name="apple-mobile-web-app-status-bar-style" content="default"/>
   <meta name="apple-mobile-web-app-title" content="Banchan"/>
   <link rel="apple-touch-icon" href="icons/icon-192.png"/>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
   <style>
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-    :root{
-      --accent:#9caf88;--accent-dark:#7a9068;--accent-bg:#f0f5ec;--accent-light:#c8d9bc;
-      --bg:#f5f4f0;--surface:#fff;--border:#dedad3;--subtle:#eceae5;
-      --muted:#9a9488;--body:#4a4540;--heading:#2a2520;
-      --urgent:#e05555;--urgent-bg:#fdf0f0;--warn:#e09020;--warn-bg:#fdf6ec;
-    }
+    :root{--accent:#9caf88;--accent-dark:#7a9068;--accent-bg:#f0f5ec;--accent-light:#c8d9bc;--bg:#f5f4f0;--surface:#fff;--border:#dedad3;--subtle:#eceae5;--muted:#9a9488;--body:#4a4540;--heading:#2a2520;--urgent:#e05555;--warn:#e09020}
     body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--body);min-height:100vh;padding-bottom:40px}
-
-    /* HEADER */
     header{background:var(--accent);color:#fff;padding:14px 16px;position:sticky;top:0;z-index:200;display:flex;align-items:center;justify-content:space-between}
     .header-left{display:flex;align-items:center;gap:10px}
     .hamburger{background:none;border:none;cursor:pointer;padding:4px;display:flex;flex-direction:column;gap:5px}
@@ -29,8 +21,6 @@
     .back-btn{background:none;border:none;color:#fff;font-size:1.3rem;cursor:pointer;line-height:1}
     header h1{font-size:1.05rem;font-weight:700;color:#fff}
     .user-avatar{width:28px;height:28px;border-radius:50%;border:2px solid rgba(255,255,255,0.4);object-fit:cover}
-
-    /* DRAWER */
     .drawer-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.35);z-index:300;opacity:0;pointer-events:none;transition:opacity .25s}
     .drawer-overlay.open{opacity:1;pointer-events:all}
     .drawer{position:fixed;left:-280px;top:0;bottom:0;width:280px;background:var(--surface);z-index:301;transition:left .25s;display:flex;flex-direction:column;box-shadow:4px 0 20px rgba(0,0,0,0.12)}
@@ -45,33 +35,21 @@
     .drawer-item.active{color:var(--accent-dark);font-weight:600;background:var(--accent-bg)}
     .drawer-item .di-icon{font-size:1.2rem}
     .drawer-logout{margin:0 16px 20px;padding:12px;border:1.5px solid var(--border);border-radius:10px;background:transparent;font-family:'Noto Sans KR',sans-serif;font-size:0.85rem;color:var(--muted);cursor:pointer;width:calc(100% - 32px)}
-
-    /* SECTION TABS (입고/재고/출고) */
     .sec-tab-bar{display:flex;background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:53px;z-index:100}
     .sec-tab{flex:1;padding:13px 6px;border:none;background:transparent;font-family:'Noto Sans KR',sans-serif;font-size:0.85rem;font-weight:600;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent}
     .sec-tab.active{color:var(--accent-dark);border-bottom-color:var(--accent)}
-
-    /* PERIOD TABS (일간/주간/월간) */
     .period-bar{display:flex;gap:6px;padding:12px 14px 0}
     .period-btn{padding:6px 16px;border-radius:20px;border:1.5px solid var(--border);background:transparent;font-family:'Noto Sans KR',sans-serif;font-size:0.78rem;color:var(--muted);cursor:pointer}
     .period-btn.active{background:var(--accent);border-color:var(--accent);color:#fff}
-
-    /* CONTENT */
     .content{padding:12px 14px;display:flex;flex-direction:column;gap:12px}
-
-    /* SUMMARY */
     .sum-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
     .sum-card{background:var(--surface);border-radius:12px;border:1px solid var(--border);padding:14px 10px;text-align:center}
     .sum-num{font-family:'DM Mono',monospace;font-size:1.5rem;font-weight:600;color:var(--accent-dark);line-height:1}
     .sum-num.warn{color:var(--warn)}
     .sum-num.urgent{color:var(--urgent)}
     .sum-label{font-size:0.67rem;color:var(--muted);margin-top:4px}
-
-    /* CARD */
     .card{background:var(--surface);border-radius:14px;border:1px solid var(--border);overflow:hidden}
     .card-hdr{padding:11px 16px;border-bottom:1px solid var(--subtle);font-size:0.82rem;font-weight:700;color:var(--heading)}
-
-    /* BAR */
     .bar-wrap{padding:10px 16px;border-bottom:1px solid var(--subtle)}
     .bar-wrap:last-child{border-bottom:none}
     .bar-label{display:flex;justify-content:space-between;font-size:0.76rem;color:var(--body);margin-bottom:5px}
@@ -80,8 +58,6 @@
     .bar-fill.in{background:var(--accent)}
     .bar-fill.out{background:var(--warn)}
     .bar-fill.stock{background:var(--accent-dark)}
-
-    /* LIST */
     .list-row{display:flex;align-items:center;justify-content:space-between;padding:9px 16px;border-bottom:1px solid var(--subtle);font-size:0.84rem}
     .list-row:last-child{border-bottom:none}
     .list-name{color:var(--body);flex:1}
@@ -90,14 +66,11 @@
     .list-val.warn{color:var(--warn)}
     .list-val.urgent{color:var(--urgent)}
     .sec-divider{font-size:0.72rem;font-weight:700;color:var(--muted);background:var(--subtle);padding:5px 16px;border-bottom:1px solid var(--subtle)}
-
     .period-label{font-size:0.78rem;color:var(--muted);padding:4px 2px}
     .empty{padding:28px;text-align:center;color:var(--muted);font-size:0.82rem}
-    .loading{padding:60px;text-align:center;color:var(--muted);font-size:0.85rem}
   </style>
 </head>
 <body>
-
 <div class="drawer-overlay" id="drawer-overlay"></div>
 <div class="drawer" id="drawer">
   <div class="drawer-header">
@@ -115,7 +88,6 @@
   </div>
   <button class="drawer-logout" id="logout-btn">로그아웃</button>
 </div>
-
 <header>
   <div class="header-left">
     <button class="hamburger" id="hamburger-btn"><span></span><span></span><span></span></button>
@@ -126,341 +98,195 @@
     <img class="user-avatar" id="header-avatar" src="" alt=""/>
   </div>
 </header>
-
-<!-- SECTION TABS -->
 <div class="sec-tab-bar">
   <button class="sec-tab active" data-sec="inbound">📥 입고</button>
   <button class="sec-tab" data-sec="stock">📦 재고</button>
   <button class="sec-tab" data-sec="outbound">📤 출고</button>
 </div>
-
-<!-- PERIOD TABS -->
 <div class="period-bar">
   <button class="period-btn active" data-p="day">일간</button>
   <button class="period-btn" data-p="week">주간</button>
   <button class="period-btn" data-p="month">월간</button>
 </div>
-
 <div class="content" id="content">
-  <div class="loading">로딩 중...</div>
+  <div class="empty">로딩 중...</div>
 </div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { getFirestore, collection, onSnapshot, query, orderBy }
-  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getFirestore, collection, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-const app  = initializeApp({
-  apiKey:"AIzaSyArW3yhj81OJpOkCEYfyaelgcdo8o_IAPw",
-  authDomain:"banchan-inventory-144bd.firebaseapp.com",
-  projectId:"banchan-inventory-144bd",
-  storageBucket:"banchan-inventory-144bd.firebasestorage.app",
-  messagingSenderId:"1022526862273",
-  appId:"1:1022526862273:web:12a025d9db24c7c6b83540"
-});
+const app = initializeApp({apiKey:"AIzaSyArW3yhj81OJpOkCEYfyaelgcdo8o_IAPw",authDomain:"banchan-inventory-144bd.firebaseapp.com",projectId:"banchan-inventory-144bd",storageBucket:"banchan-inventory-144bd.firebasestorage.app",messagingSenderId:"1022526862273",appId:"1:1022526862273:web:12a025d9db24c7c6b83540"});
 const auth = getAuth(app);
-const db   = getFirestore(app);
+const db = getFirestore(app);
 
 const SECTIONS = [
-  {id:'food',      label:'식재료',   icon:'🥩'},
-  {id:'container', label:'컨테이너', icon:'📦'},
-  {id:'misc',      label:'소모품',   icon:'🪣'},
-  {id:'clean',     label:'청소',     icon:'🧹'},
-  {id:'other',     label:'기타',     icon:'📂'},
+  {id:'food',label:'식재료',icon:'🥩'},
+  {id:'container',label:'컨테이너',icon:'📦'},
+  {id:'misc',label:'소모품',icon:'🪣'},
+  {id:'clean',label:'청소',icon:'🧹'},
+  {id:'other',label:'기타',icon:'📂'},
 ];
 
 const cache = {};
 SECTIONS.forEach(s => cache[s.id] = []);
-
-let curSec    = 'inbound';
+let curSec = 'inbound';
 let curPeriod = 'day';
-let ready     = false;
 
-// ── Auth + Firestore ──────────────────────────────────
+// Drawer
+document.getElementById('hamburger-btn').addEventListener('click',()=>{document.getElementById('drawer').classList.add('open');document.getElementById('drawer-overlay').classList.add('open');});
+document.getElementById('drawer-overlay').addEventListener('click',()=>{document.getElementById('drawer').classList.remove('open');document.getElementById('drawer-overlay').classList.remove('open');});
+document.getElementById('logout-btn').addEventListener('click',async()=>{await signOut(auth);location.href='index.html';});
+
+// Tabs
+document.querySelectorAll('.sec-tab').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('.sec-tab').forEach(x=>x.classList.remove('active'));b.classList.add('active');curSec=b.dataset.sec;render();}));
+document.querySelectorAll('.period-btn').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('.period-btn').forEach(x=>x.classList.remove('active'));b.classList.add('active');curPeriod=b.dataset.p;render();}));
+
+// Auth
 onAuthStateChanged(auth, user => {
   if (!user) { location.href='index.html'; return; }
   document.getElementById('header-avatar').src = user.photoURL||'';
   document.getElementById('drawer-avatar').src  = user.photoURL||'';
   document.getElementById('drawer-name').textContent  = user.displayName||'';
   document.getElementById('drawer-email').textContent = user.email||'';
+  startListeners();
+});
 
-  let done = 0;
+let started = false;
+function startListeners() {
+  if (started) return;
+  started = true;
+  const done = new Set();
   SECTIONS.forEach(sec => {
-    const q = query(collection(db, `inv_${sec.id}`), orderBy('createdAt'));
-    onSnapshot(q, snap => {
-      cache[sec.id] = snap.docs.map(d => ({id:d.id,...d.data()}));
-      if (!ready) { done++; if (done >= SECTIONS.length) { ready=true; render(); } }
-      else render();
-    }, () => { done++; if (!ready && done>=SECTIONS.length){ ready=true; render(); } });
+    onSnapshot(
+      query(collection(db, 'inv_'+sec.id), orderBy('createdAt')),
+      snap => {
+        cache[sec.id] = snap.docs.map(d=>({id:d.id,...d.data()}));
+        done.add(sec.id);
+        render();
+      },
+      err => {
+        console.warn(sec.id, err.code);
+        done.add(sec.id);
+        if (done.size >= SECTIONS.length) render();
+      }
+    );
   });
-});
+}
 
-// ── Drawer ────────────────────────────────────────────
-document.getElementById('hamburger-btn').addEventListener('click',()=>{document.getElementById('drawer').classList.add('open');document.getElementById('drawer-overlay').classList.add('open');});
-document.getElementById('drawer-overlay').addEventListener('click',()=>{document.getElementById('drawer').classList.remove('open');document.getElementById('drawer-overlay').classList.remove('open');});
-document.getElementById('logout-btn').addEventListener('click',async()=>{await signOut(auth);location.href='index.html';});
-
-// ── Section tabs ──────────────────────────────────────
-document.querySelectorAll('.sec-tab').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('.sec-tab').forEach(b=>b.classList.remove('active'));
-    btn.classList.add('active');
-    curSec = btn.dataset.sec;
-    render();
-  });
-});
-
-// ── Period tabs ───────────────────────────────────────
-document.querySelectorAll('.period-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('.period-btn').forEach(b=>b.classList.remove('active'));
-    btn.classList.add('active');
-    curPeriod = btn.dataset.p;
-    render();
-  });
-});
-
-// ── Date helpers ──────────────────────────────────────
+// Date helpers
 function getRange(p) {
   const now = new Date();
-  let s, e;
-  if (p === 'day') {
-    s = new Date(now); s.setHours(0,0,0,0);
-    e = new Date(now); e.setHours(23,59,59,999);
-  } else if (p === 'week') {
-    const d = now.getDay();
-    s = new Date(now); s.setDate(now.getDate()-d+1); s.setHours(0,0,0,0);
-    e = new Date(s); e.setDate(s.getDate()+6); e.setHours(23,59,59,999);
-  } else {
-    s = new Date(now.getFullYear(), now.getMonth(), 1);
-    e = new Date(now.getFullYear(), now.getMonth()+1, 0, 23,59,59,999);
-  }
-  return {s:s.getTime(), e:e.getTime()};
+  let s,e;
+  if (p==='day'){s=new Date(now);s.setHours(0,0,0,0);e=new Date(now);e.setHours(23,59,59,999);}
+  else if (p==='week'){const d=now.getDay();s=new Date(now);s.setDate(now.getDate()-d+1);s.setHours(0,0,0,0);e=new Date(s);e.setDate(s.getDate()+6);e.setHours(23,59,59,999);}
+  else{s=new Date(now.getFullYear(),now.getMonth(),1);e=new Date(now.getFullYear(),now.getMonth()+1,0,23,59,59,999);}
+  return {s:s.getTime(),e:e.getTime()};
 }
-
 function periodStr(p) {
-  const now = new Date();
-  if (p==='day') return `${now.getMonth()+1}/${now.getDate()} 오늘`;
-  if (p==='week') {
-    const d=now.getDay();
-    const mon=new Date(now); mon.setDate(now.getDate()-d+1);
-    const sun=new Date(mon); sun.setDate(mon.getDate()+6);
-    return `${mon.getMonth()+1}/${mon.getDate()} – ${sun.getMonth()+1}/${sun.getDate()}`;
-  }
-  return `${now.getFullYear()}년 ${now.getMonth()+1}월`;
+  const now=new Date();
+  if(p==='day')return`${now.getMonth()+1}/${now.getDate()} 오늘`;
+  if(p==='week'){const d=now.getDay();const m=new Date(now);m.setDate(now.getDate()-d+1);const su=new Date(m);su.setDate(m.getDate()+6);return`${m.getMonth()+1}/${m.getDate()} – ${su.getMonth()+1}/${su.getDate()}`;}
+  return`${now.getFullYear()}년 ${now.getMonth()+1}월`;
 }
 
-// ── Render ────────────────────────────────────────────
+function fmt(n){if(!n&&n!==0)return'0';const v=parseFloat(n);return Number.isInteger(v)?v:v.toFixed(2);}
+function pad(n){return String(n).padStart(2,'0');}
+
 function render() {
-  const content = document.getElementById('content');
-  content.innerHTML = '';
-
-  // Period label
-  const pl = document.createElement('div');
-  pl.className = 'period-label';
-  pl.textContent = periodStr(curPeriod);
-  content.appendChild(pl);
-
-  if (curSec === 'inbound')  renderInbound(content);
-  else if (curSec === 'stock')   renderStock(content);
-  else                           renderOutbound(content);
+  const ct = document.getElementById('content');
+  ct.innerHTML = '';
+  const pl = document.createElement('div'); pl.className='period-label'; pl.textContent=periodStr(curPeriod); ct.appendChild(pl);
+  if (curSec==='inbound') renderInbound(ct);
+  else if (curSec==='stock') renderStock(ct);
+  else renderOutbound(ct);
 }
 
-// ─────────────────────────────────────────────────────
-// 📥 INBOUND
-// ─────────────────────────────────────────────────────
-function renderInbound(content) {
-  const {s, e} = getRange(curPeriod);
-  const items = SECTIONS.flatMap(sec =>
-    cache[sec.id].filter(i=>i.createdAt>=s&&i.createdAt<=e).map(i=>({...i,sec}))
-  );
+function mkCard(title){const c=document.createElement('div');c.className='card';const h=document.createElement('div');h.className='card-hdr';h.textContent=title;c.appendChild(h);return c;}
+function mkBar(label,val,pv,type){const w=document.createElement('div');w.className='bar-wrap';w.innerHTML=`<div class="bar-label"><span>${label}</span><span>${val}</span></div><div class="bar-bg"><div class="bar-fill ${type}" style="width:${Math.min(pv,100).toFixed(1)}%"></div></div>`;return w;}
+function mkRow(name,val,cls,extra=''){const r=document.createElement('div');r.className='list-row';r.innerHTML=`<span class="list-name">${name}</span><span class="list-val ${cls}">${val}</span>${extra}`;return r;}
+function mkSec(t){const d=document.createElement('div');d.className='sec-divider';d.textContent=t;return d;}
+function mkEmpty(msg='데이터가 없어요'){const d=document.createElement('div');d.className='empty';d.textContent=msg;return d;}
+function mkGrid(a,b,c){const g=document.createElement('div');g.className='sum-grid';g.innerHTML=`<div class="sum-card"><div class="sum-num ${a.cls||''}">${a.v}</div><div class="sum-label">${a.l}</div></div><div class="sum-card"><div class="sum-num ${b.cls||''}">${b.v}</div><div class="sum-label">${b.l}</div></div><div class="sum-card"><div class="sum-num ${c.cls||''}">${c.v}</div><div class="sum-label">${c.l}</div></div>`;return g;}
 
-  // Summary
-  const totalItems = items.length;
-  const cats = new Set(items.map(i=>i.sec.id)).size;
-  const totalQty = items.reduce((a,i)=>a+(i.qty||0),0);
+function renderInbound(ct) {
+  const {s,e}=getRange(curPeriod);
+  const items=SECTIONS.flatMap(sec=>cache[sec.id].filter(i=>i.createdAt>=s&&i.createdAt<=e).map(i=>({...i,sec})));
+  const totalQty=items.reduce((a,i)=>a+(i.qty||0),0);
+  ct.appendChild(mkGrid({v:items.length,l:'입고 건수'},{v:new Set(items.map(i=>i.sec.id)).size,l:'카테고리'},{v:fmt(totalQty),l:'총 수량'}));
 
-  const g = div('sum-grid');
-  g.innerHTML = `
-    <div class="sum-card"><div class="sum-num">${totalItems}</div><div class="sum-label">입고 건수</div></div>
-    <div class="sum-card"><div class="sum-num">${cats}</div><div class="sum-label">카테고리</div></div>
-    <div class="sum-card"><div class="sum-num">${fmt(totalQty)}</div><div class="sum-label">총 수량</div></div>
-  `;
-  content.appendChild(g);
+  const bySec={};SECTIONS.forEach(s=>bySec[s.id]=0);items.forEach(i=>bySec[i.sec.id]+=(i.qty||1));
+  const maxV=Math.max(...Object.values(bySec),1);
+  const bc=mkCard('카테고리별 입고량');
+  SECTIONS.forEach(sec=>{const cnt=items.filter(i=>i.sec.id===sec.id).length;if(!cnt)return;const qty=bySec[sec.id];bc.appendChild(mkBar(`${sec.icon} ${sec.label}`,`${cnt}건 · ${fmt(qty)}`,Math.round((qty/maxV)*100),'in'));});
+  if(!items.length)bc.appendChild(mkEmpty('이 기간에 입고된 항목이 없어요'));
+  ct.appendChild(bc);
 
-  // Bar by category
-  const bySec = {};
-  SECTIONS.forEach(s=>bySec[s.id]=0);
-  items.forEach(i=>bySec[i.sec.id]+=(i.qty||1));
-  const maxV = Math.max(...Object.values(bySec), 1);
-
-  const barCard = card('카테고리별 입고량');
-  SECTIONS.forEach(sec => {
-    const cnt = items.filter(i=>i.sec.id===sec.id).length;
-    if (!cnt) return;
-    const qty = bySec[sec.id];
-    const pct = Math.round((qty/maxV)*100);
-    barCard.appendChild(barRow(`${sec.icon} ${sec.label}`, `${cnt}건 · ${fmt(qty)}`, pct, 'in'));
-  });
-  if (!items.length) barCard.appendChild(emptyEl());
-  content.appendChild(barCard);
-
-  // List by category
-  const listCard = card('입고 목록');
-  let any = false;
-  SECTIONS.forEach(sec => {
-    const si = items.filter(i=>i.sec.id===sec.id).sort((a,b)=>b.createdAt-a.createdAt);
-    if (!si.length) return;
-    any = true;
-    listCard.appendChild(secDiv(`${sec.icon} ${sec.label}`));
-    si.forEach(item => {
-      const d = new Date(item.createdAt);
-      const t = `${d.getMonth()+1}/${d.getDate()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
-      const r = listRow(item.name, `${fmt(item.qty)} ${item.unit}`, 'ok');
-      r.querySelector('.list-val').insertAdjacentHTML('afterend',`<span style="font-size:0.68rem;color:var(--muted);margin-left:6px">${t}</span>`);
-      listCard.appendChild(r);
+  const lc=mkCard('입고 목록');let any=false;
+  SECTIONS.forEach(sec=>{
+    const si=items.filter(i=>i.sec.id===sec.id).sort((a,b)=>b.createdAt-a.createdAt);
+    if(!si.length)return;any=true;lc.appendChild(mkSec(`${sec.icon} ${sec.label}`));
+    si.forEach(item=>{
+      const d=new Date(item.createdAt);
+      const t=`${d.getMonth()+1}/${d.getDate()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+      lc.appendChild(mkRow(item.name,`${fmt(item.qty)} ${item.unit}`,'ok',`<span style="font-size:0.68rem;color:var(--muted);margin-left:6px">${t}</span>`));
     });
   });
-  if (!any) listCard.appendChild(emptyEl('이 기간에 입고된 항목이 없어요'));
-  content.appendChild(listCard);
+  if(!any)lc.appendChild(mkEmpty('이 기간에 입고된 항목이 없어요'));
+  ct.appendChild(lc);
 }
 
-// ─────────────────────────────────────────────────────
-// 📦 STOCK (재고는 기간 무관 — 현재 상태)
-// ─────────────────────────────────────────────────────
-function renderStock(content) {
-  const allItems = SECTIONS.flatMap(sec=>cache[sec.id].map(i=>({...i,sec})));
-  const total = allItems.length;
-  const warnC = allItems.filter(i=>{const p=pct(i);return p>15&&p<=40;}).length;
-  const urgC  = allItems.filter(i=>pct(i)<=15).length;
+function renderStock(ct) {
+  const all=SECTIONS.flatMap(sec=>cache[sec.id].map(i=>({...i,sec})));
+  const getPct=i=>{const r=i.remaining??i.qty;return i.qty>0?(r/i.qty)*100:0;};
+  const warnC=all.filter(i=>{const p=getPct(i);return p>15&&p<=40;}).length;
+  const urgC=all.filter(i=>getPct(i)<=15).length;
+  ct.appendChild(mkGrid({v:all.length,l:'전체 품목'},{v:warnC,l:'주문 요망',cls:'warn'},{v:urgC,l:'긴급 주문',cls:'urgent'}));
 
-  const g = div('sum-grid');
-  g.innerHTML = `
-    <div class="sum-card"><div class="sum-num">${total}</div><div class="sum-label">전체 품목</div></div>
-    <div class="sum-card"><div class="sum-num warn">${warnC}</div><div class="sum-label">주문 요망</div></div>
-    <div class="sum-card"><div class="sum-num urgent">${urgC}</div><div class="sum-label">긴급 주문</div></div>
-  `;
-  content.appendChild(g);
-
-  // Bar by category (avg remaining %)
-  const barCard = card('카테고리별 재고율');
-  SECTIONS.forEach(sec => {
-    const its = cache[sec.id];
-    if (!its.length) return;
-    const avg = its.reduce((a,i)=>a+pct(i),0)/its.length;
-    barCard.appendChild(barRow(`${sec.icon} ${sec.label}`, `${its.length}개 · 평균 ${avg.toFixed(0)}%`, avg, 'stock'));
+  const bc=mkCard('카테고리별 재고율');
+  SECTIONS.forEach(sec=>{
+    const its=cache[sec.id];if(!its.length)return;
+    const avg=its.reduce((a,i)=>a+getPct(i),0)/its.length;
+    bc.appendChild(mkBar(`${sec.icon} ${sec.label}`,`${its.length}개 · 평균 ${avg.toFixed(0)}%`,avg,'stock'));
   });
-  if (!allItems.length) barCard.appendChild(emptyEl());
-  content.appendChild(barCard);
+  if(!all.length)bc.appendChild(mkEmpty());
+  ct.appendChild(bc);
 
-  // Full list
-  const listCard = card('전체 재고 현황');
-  let any = false;
-  SECTIONS.forEach(sec => {
-    const its = [...cache[sec.id]].sort((a,b)=>a.name.localeCompare(b.name,'ko'));
-    if (!its.length) return;
-    any = true;
-    listCard.appendChild(secDiv(`${sec.icon} ${sec.label}`));
-    its.forEach(item => {
-      const r = item.remaining ?? item.qty;
-      const p = pct(item);
-      const cls = p<=15?'urgent':p<=40?'warn':'ok';
-      listCard.appendChild(listRow(item.name, `${fmt(r)} / ${fmt(item.qty)} ${item.unit}`, cls));
+  const lc=mkCard('전체 재고 현황');let any=false;
+  SECTIONS.forEach(sec=>{
+    const its=[...cache[sec.id]].sort((a,b)=>a.name.localeCompare(b.name,'ko'));
+    if(!its.length)return;any=true;lc.appendChild(mkSec(`${sec.icon} ${sec.label}`));
+    its.forEach(item=>{
+      const r=item.remaining??item.qty;const p=getPct(item);
+      lc.appendChild(mkRow(item.name,`${fmt(r)} / ${fmt(item.qty)} ${item.unit}`,p<=15?'urgent':p<=40?'warn':'ok'));
     });
   });
-  if (!any) listCard.appendChild(emptyEl());
-  content.appendChild(listCard);
+  if(!any)lc.appendChild(mkEmpty());
+  ct.appendChild(lc);
 }
 
-// ─────────────────────────────────────────────────────
-// 📤 OUTBOUND
-// ─────────────────────────────────────────────────────
-function renderOutbound(content) {
-  const {s, e} = getRange(curPeriod);
-  // 출고량 = 기간 내 입고된 아이템의 (qty - remaining)
-  const items = SECTIONS.flatMap(sec =>
-    cache[sec.id]
-      .filter(i=>i.createdAt>=s&&i.createdAt<=e)
-      .map(i=>({...i, outQty:Math.max(0,(i.qty||0)-(i.remaining??i.qty||0)), sec}))
-  ).filter(i=>i.outQty>0);
+function renderOutbound(ct) {
+  const {s,e}=getRange(curPeriod);
+  const items=SECTIONS.flatMap(sec=>cache[sec.id].filter(i=>i.createdAt>=s&&i.createdAt<=e).map(i=>({...i,outQty:Math.max(0,(i.qty||0)-(i.remaining??i.qty||0)),sec}))).filter(i=>i.outQty>0);
+  const totalOut=items.reduce((a,i)=>a+i.outQty,0);
+  ct.appendChild(mkGrid({v:items.length,l:'출고 품목'},{v:fmt(totalOut),l:'총 출고량'},{v:new Set(items.map(i=>i.sec.id)).size,l:'카테고리'}));
 
-  const totalOut = items.reduce((a,i)=>a+i.outQty,0);
-  const cats = new Set(items.map(i=>i.sec.id)).size;
+  const bySec={};SECTIONS.forEach(s=>bySec[s.id]=0);items.forEach(i=>bySec[i.sec.id]+=i.outQty);
+  const maxV=Math.max(...Object.values(bySec),1);
+  const bc=mkCard('카테고리별 출고량');
+  SECTIONS.forEach(sec=>{const qty=bySec[sec.id];if(!qty)return;const cnt=items.filter(i=>i.sec.id===sec.id).length;bc.appendChild(mkBar(`${sec.icon} ${sec.label}`,`${cnt}건 · ${fmt(qty)}`,Math.round((qty/maxV)*100),'out'));});
+  if(!items.length)bc.appendChild(mkEmpty('이 기간에 출고된 항목이 없어요'));
+  ct.appendChild(bc);
 
-  const g = div('sum-grid');
-  g.innerHTML = `
-    <div class="sum-card"><div class="sum-num">${items.length}</div><div class="sum-label">출고 품목</div></div>
-    <div class="sum-card"><div class="sum-num">${fmt(totalOut)}</div><div class="sum-label">총 출고량</div></div>
-    <div class="sum-card"><div class="sum-num">${cats}</div><div class="sum-label">카테고리</div></div>
-  `;
-  content.appendChild(g);
-
-  // Bar by category
-  const bySec = {};
-  SECTIONS.forEach(s=>bySec[s.id]=0);
-  items.forEach(i=>bySec[i.sec.id]+=i.outQty);
-  const maxV = Math.max(...Object.values(bySec),1);
-
-  const barCard = card('카테고리별 출고량');
-  SECTIONS.forEach(sec => {
-    const qty = bySec[sec.id];
-    if (!qty) return;
-    const cnt = items.filter(i=>i.sec.id===sec.id).length;
-    const p = Math.round((qty/maxV)*100);
-    barCard.appendChild(barRow(`${sec.icon} ${sec.label}`, `${cnt}건 · ${fmt(qty)}`, p, 'out'));
+  const lc=mkCard('출고 목록');let any=false;
+  SECTIONS.forEach(sec=>{
+    const si=items.filter(i=>i.sec.id===sec.id).sort((a,b)=>b.outQty-a.outQty);
+    if(!si.length)return;any=true;lc.appendChild(mkSec(`${sec.icon} ${sec.label}`));
+    si.forEach(item=>lc.appendChild(mkRow(item.name,`${fmt(item.outQty)} ${item.unit} 출고`,'warn')));
   });
-  if (!items.length) barCard.appendChild(emptyEl('이 기간에 출고된 항목이 없어요'));
-  content.appendChild(barCard);
-
-  // List
-  const listCard = card('출고 목록');
-  let any = false;
-  SECTIONS.forEach(sec => {
-    const si = items.filter(i=>i.sec.id===sec.id).sort((a,b)=>b.outQty-a.outQty);
-    if (!si.length) return;
-    any = true;
-    listCard.appendChild(secDiv(`${sec.icon} ${sec.label}`));
-    si.forEach(item => {
-      listCard.appendChild(listRow(item.name, `${fmt(item.outQty)} ${item.unit} 출고`, 'warn'));
-    });
-  });
-  if (!any) listCard.appendChild(emptyEl('이 기간에 출고된 항목이 없어요'));
-  content.appendChild(listCard);
-}
-
-// ── Helpers ───────────────────────────────────────────
-function pct(item) {
-  const r = item.remaining ?? item.qty;
-  return item.qty > 0 ? (r / item.qty) * 100 : 0;
-}
-function fmt(n) {
-  if (!n && n!==0) return '0';
-  return Number.isInteger(n) ? n : parseFloat(n.toFixed(2));
-}
-function pad(n) { return String(n).padStart(2,'0'); }
-function div(cls) { const el=document.createElement('div'); el.className=cls; return el; }
-
-function card(title) {
-  const c = div('card');
-  const h = document.createElement('div'); h.className='card-hdr'; h.textContent=title;
-  c.appendChild(h); return c;
-}
-function barRow(label, val, pctVal, type) {
-  const w = div('bar-wrap');
-  w.innerHTML=`<div class="bar-label"><span>${label}</span><span>${val}</span></div><div class="bar-bg"><div class="bar-fill ${type}" style="width:${Math.min(pctVal,100).toFixed(1)}%"></div></div>`;
-  return w;
-}
-function listRow(name, val, cls) {
-  const r = div('list-row');
-  r.innerHTML=`<span class="list-name">${name}</span><span class="list-val ${cls}">${val}</span>`;
-  return r;
-}
-function secDiv(text) {
-  const d = div('sec-divider'); d.textContent=text; return d;
-}
-function emptyEl(msg='데이터가 없어요') {
-  const d = div('empty'); d.textContent=msg; return d;
+  if(!any)lc.appendChild(mkEmpty('이 기간에 출고된 항목이 없어요'));
+  ct.appendChild(lc);
 }
 </script>
 <script>if('serviceWorker' in navigator){navigator.serviceWorker.register('/app/sw.js').catch(()=>{});}</script>
