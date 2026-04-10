@@ -11,22 +11,21 @@
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
     :root{--accent:#9caf88;--accent-dark:#7a9068;--accent-bg:#f0f5ec;--bg:#f5f4f0;--surface:#fff;--border:#dedad3;--subtle:#eceae5;--muted:#9a9488;--body:#4a4540;--heading:#2a2520;--warn:#e09020}
     body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--body);min-height:100vh;padding-bottom:60px}
-    
     header{background:var(--accent);color:#fff;padding:14px 16px;position:sticky;top:0;z-index:200;display:flex;align-items:center;gap:12px}
     .back-btn{background:none;border:none;color:#fff;font-size:1.3rem;cursor:pointer}
     header h1{font-size:1.05rem;font-weight:700}
-
     .content{padding:16px;display:flex;flex-direction:column;gap:16px}
-    
     .card{background:var(--surface);border-radius:16px;border:1px solid var(--border);padding:16px;display:flex;flex-direction:column;gap:12px}
     .card h3{font-size:0.9rem;font-weight:700;color:var(--heading)}
-
     .field-row{display:flex;flex-direction:column;gap:6px}
     .field-label{font-size:0.75rem;color:var(--muted);font-weight:600}
     .select-box, .input-box{width:100%;border:1px solid var(--border);background:var(--subtle);border-radius:10px;padding:12px;font-size:0.9rem;outline:none;font-family:inherit}
-    
     .calc-btn{width:100%;padding:14px;border:none;border-radius:12px;background:var(--accent);color:#fff;font-weight:700;font-size:0.95rem;cursor:pointer;margin-top:8px}
     .calc-btn:active{background:var(--accent-dark)}
+    
+    /* 복사 버튼 스타일 */
+    .copy-btn{width:100%;padding:10px;border:1.5px solid var(--accent);border-radius:10px;background:transparent;color:var(--accent-dark);font-weight:700;font-size:0.85rem;cursor:pointer;margin-top:4px;display:none}
+    .copy-btn.show{display:block}
 
     .res-card{display:none}
     .res-card.open{display:flex}
@@ -36,8 +35,7 @@
     .res-vals{text-align:right}
     .res-out{color:var(--warn);font-family:'DM Mono',monospace;font-weight:700;font-size:0.9rem}
     .res-unit{font-size:0.75rem;color:var(--muted);margin-top:2px}
-    
-    #toast{position:fixed;bottom:20px;right:16px;background:var(--accent-dark);color:#fff;font-size:0.75rem;padding:8px 16px;border-radius:20px;opacity:0;transition:opacity .3s;z-index:999}
+    #toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.8);color:#fff;font-size:0.8rem;padding:10px 20px;border-radius:25px;opacity:0;transition:opacity .3s;z-index:999;white-space:nowrap;pointer-events:none}
   </style>
 </head>
 <body>
@@ -52,19 +50,18 @@
     <h3>레시피 선택</h3>
     <div class="field-row">
       <span class="field-label">레시피</span>
-      <select class="select-box" id="recipe-select">
-        <option value="">레시피를 선택하세요</option>
-      </select>
+      <select class="select-box" id="recipe-select"><option value="">로딩 중...</option></select>
     </div>
     <div class="field-row">
       <span class="field-label">생산 수량 (인분)</span>
       <input class="input-box" id="produce-qty" type="number" placeholder="예: 50" min="1"/>
     </div>
     <button class="calc-btn" id="calc-btn">소모량 계산하기</button>
+    <button class="copy-btn" id="copy-btn">📋 결과 복사하여 붙여넣기</button>
   </div>
 
   <div class="card res-card" id="result-card">
-    <h3>출고 예정 내역 (입고 단위 환산)</h3>
+    <h3>출고 예정 내역</h3>
     <div id="result-list"></div>
   </div>
 </div>
@@ -73,6 +70,7 @@
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import { getFirestore, collection, getDocs, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const app = initializeApp({
@@ -83,21 +81,26 @@ const app = initializeApp({
   messagingSenderId:"1022526862273",
   appId:"1:1022526862273:web:12a025d9db24c7c6b83540"
 });
+const auth = getAuth(app);
 const db = getFirestore(app);
 
 let recipes = [];
 let conversions = {};
+let lastResultText = ""; // 복사용 텍스트 저장
 
-async function init() {
-  // 1. 레시피 로드
+onAuthStateChanged(auth, user => {
+  if (user) initData();
+  else location.href = 'index.html';
+});
+
+async function initData() {
   const rSnap = await getDocs(collection(db, 'recipes'));
   recipes = rSnap.docs.map(d => ({id: d.id, ...d.data()}));
   const sel = document.getElementById('recipe-select');
+  sel.innerHTML = '<option value="">레시피 선택</option>';
   recipes.sort((a,b)=>a.name.localeCompare(b.name,'ko')).forEach(r => {
-    sel.innerHTML += `<option value="${r.id}">${r.name} (기준: ${r.serving}인분)</option>`;
+    sel.innerHTML += `<option value="${r.id}">${r.name} (${r.serving}인분 기준)</option>`;
   });
-
-  // 2. 모든 카테고리 변환 데이터 로드
   const categories = ['food', 'container', 'misc', 'clean', 'other'];
   for(const cat of categories) {
     const cSnap = await getDoc(doc(db, 'item_conversions', cat));
@@ -116,40 +119,48 @@ document.getElementById('calc-btn').addEventListener('click', () => {
   const ratio = pQty / (parseFloat(recipe.serving) || 1);
   const resList = document.getElementById('result-list');
   resList.innerHTML = '';
+  
+  let copyText = `[${recipe.name} ${pQty}인분 생산 소모량]\n`;
 
   recipe.ingredients.forEach(ing => {
-    const needAmt = parseFloat(ing.amount) * ratio; // 필요한 실사용량 (예: 15lb)
-    
-    // 변환 비율 찾기 (모든 카테고리 뒤짐)
+    const needAmt = parseFloat(ing.amount) * ratio;
     let conv = null;
-    for(const cat in conversions) {
-      if(conversions[cat][ing.name]) { conv = conversions[cat][ing.name]; break; }
-    }
+    for(const cat in conversions) { if(conversions[cat][ing.name]) { conv = conversions[cat][ing.name]; break; } }
 
-    let displayOut = `${needAmt.toFixed(2)} ${ing.unit}`;
-    let boxVal = "";
-
+    let boxLine = "";
     if(conv && conv.ratio) {
-      const outInBox = needAmt / conv.ratio; // 입고 단위로 환산 (예: 15lb / 30lb = 0.5 box)
-      boxVal = `→ 약 ${outInBox.toFixed(2)} ${conv.inUnit} 차감 예정`;
+      const outInBox = needAmt / conv.ratio;
+      boxLine = ` (약 ${outInBox.toFixed(2)} ${conv.inUnit})`;
     }
+
+    copyText += `- ${ing.name}: ${needAmt.toFixed(2)}${ing.unit}${boxLine}\n`;
 
     const item = document.createElement('div');
     item.className = 'res-item';
     item.innerHTML = `
       <div class="res-name">${ing.name}</div>
       <div class="res-vals">
-        <div class="res-out">${displayOut} 소모</div>
-        <div class="res-unit">${boxVal}</div>
+        <div class="res-out">${needAmt.toFixed(2)} ${ing.unit}</div>
+        <div class="res-unit">${boxLine ? '→ '+boxLine : ''}</div>
       </div>
     `;
     resList.appendChild(item);
   });
 
+  lastResultText = copyText;
   document.getElementById('result-card').classList.add('open');
+  document.getElementById('copy-btn').classList.add('show');
 });
 
-init();
+// 복사 기능
+document.getElementById('copy-btn').addEventListener('click', () => {
+  if(!lastResultText) return;
+  navigator.clipboard.writeText(lastResultText).then(() => {
+    showToast('복사되었습니다! 필요한 곳에 붙여넣으세요.');
+  }).catch(() => {
+    showToast('복사 실패. 수동으로 복사해주세요.');
+  });
+});
 </script>
 </body>
 </html>
