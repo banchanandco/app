@@ -83,12 +83,13 @@
     .memo-save-btn:active{background:var(--accent-dark)}
 
     /* MEMO CARDS */
-    .memo-card{background:var(--surface);border-radius:14px;border:1px solid var(--border);overflow:hidden;cursor:pointer;-webkit-tap-highlight-color:transparent}
+    .memo-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .memo-card{background:var(--surface);border-radius:14px;border:1px solid var(--border);overflow:hidden;cursor:pointer;-webkit-tap-highlight-color:transparent;display:flex;flex-direction:column}
     .memo-card:active{border-color:var(--accent)}
-    .memo-card-title{font-size:0.92rem;font-weight:700;color:var(--heading);padding:13px 16px 6px}
-    .memo-card-body{font-size:0.82rem;color:var(--body);padding:0 16px 6px;line-height:1.6;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;white-space:pre-wrap}
-    .memo-card-meta{font-size:0.68rem;color:var(--muted);padding:6px 16px 12px;display:flex;gap:10px;border-top:1px solid var(--subtle);margin-top:4px}
-    .memo-card-actions{display:flex;gap:6px;padding:0 12px 10px;justify-content:flex-end}
+    .memo-card-title{font-size:0.88rem;font-weight:700;color:var(--heading);padding:11px 12px 5px;line-height:1.3}
+    .memo-card-body{font-size:0.78rem;color:var(--body);padding:0 12px 5px;line-height:1.55;display:-webkit-box;-webkit-line-clamp:5;-webkit-box-orient:vertical;overflow:hidden;white-space:pre-wrap;flex:1}
+    .memo-card-meta{font-size:0.65rem;color:var(--muted);padding:5px 12px 10px;display:flex;gap:6px;flex-wrap:wrap;border-top:1px solid var(--subtle);margin-top:auto}
+    .memo-card-actions{display:flex;gap:4px;padding:0 8px 8px;justify-content:flex-end}
     .memo-action-btn{padding:5px 12px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface);font-family:'Noto Sans KR',sans-serif;font-size:0.75rem;color:var(--muted);cursor:pointer}
     .memo-action-btn.del{border-color:transparent;color:#c0392b}
 
@@ -109,6 +110,8 @@
     .ol-pct.urgent{color:var(--urgent)}
     .ol-pct.warn{color:var(--warn)}
     .ol-empty{padding:32px;text-align:center;color:var(--muted);font-size:0.82rem}
+    .ol-del-btn{padding:7px 12px;border:none;border-radius:8px;background:#fdf0f0;color:#c0392b;font-family:'Noto Sans KR',sans-serif;font-size:0.78rem;font-weight:600;cursor:pointer}
+    .ol-del-btn:active{background:#fadbd8}
     /* DETAIL SHEET */
     .sheet-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:400;opacity:0;pointer-events:none;transition:opacity .25s}
     .sheet-overlay.open{opacity:1;pointer-events:all}
@@ -445,8 +448,22 @@ function renderOrderList() {
   // Header
   const hdr = document.createElement('div'); hdr.className='ol-hdr';
   hdr.innerHTML = `<span>주문 리스트 (${orderListItems.length})</span>`;
+  const btnWrap = document.createElement('div'); btnWrap.style.cssText='display:flex;gap:6px';
+
+  const delBtn = document.createElement('button'); delBtn.className='ol-del-btn';
+  delBtn.textContent = '🗑 선택 삭제';
+  delBtn.addEventListener('click', async () => {
+    const toDel = orderListItems.filter(i=>selectedOrderItems.has(i.id));
+    if (!toDel.length) { showToast('삭제할 항목을 선택하세요'); return; }
+    const newItems = orderListItems.filter(i=>!selectedOrderItems.has(i.id));
+    await setDoc(doc(db,'order_config','pending_shopping'), {
+      items: newItems, updatedAt: Date.now()
+    });
+    showToast(`${toDel.length}개 삭제됨`);
+  });
+
   const regBtn = document.createElement('button'); regBtn.className='ol-reg-btn';
-  regBtn.textContent = '✓ 선택 쇼핑리스트 등록';
+  regBtn.textContent = '✓ 선택 등록';
   regBtn.addEventListener('click', async () => {
     const toAdd = orderListItems.filter(i=>selectedOrderItems.has(i.id));
     if (!toAdd.length) { showToast('항목을 선택하세요'); return; }
@@ -471,7 +488,9 @@ function renderOrderList() {
     document.querySelector('[data-tab="shopping"]').classList.add('active');
     document.getElementById('tab-shopping').classList.add('active');
   });
-  hdr.appendChild(regBtn);
+  btnWrap.appendChild(delBtn);
+  btnWrap.appendChild(regBtn);
+  hdr.appendChild(btnWrap);
   card.appendChild(hdr);
 
   // Urgent
@@ -539,6 +558,7 @@ function renderMemos(){
     e.textContent='저장된 메모가 없어요';
     ct.appendChild(e);return;
   }
+  const grid=document.createElement('div');grid.className='memo-grid';
   memos.forEach(memo=>{
     const card=document.createElement('div');card.className='memo-card';
     const titleEl=document.createElement('div');titleEl.className='memo-card-title';titleEl.textContent=memo.title;
@@ -558,8 +578,9 @@ function renderMemos(){
 
     // Click to open detail
     card.addEventListener('click',()=>openMemoDetail(memo));
-    ct.appendChild(card);
+    grid.appendChild(card);
   });
+  ct.appendChild(grid);
 }
 
 // Memo detail
