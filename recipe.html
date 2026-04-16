@@ -154,6 +154,21 @@
     .stock-preview-name{color:var(--body)}
     .stock-preview-val{font-family:'DM Mono',monospace;font-size:0.78rem;color:var(--accent-dark)}
     .stock-preview-val.no-match{color:var(--muted);font-family:'Noto Sans KR',sans-serif;font-size:0.72rem}
+    /* CATEGORY FILTER */
+    .cat-bar{display:flex;gap:6px;padding:10px 14px 4px;overflow-x:auto;flex-wrap:nowrap}
+    .cat-bar::-webkit-scrollbar{display:none}
+    .cat-chip{flex-shrink:0;padding:5px 12px;border-radius:20px;border:1.5px solid var(--border);background:var(--surface);font-family:'Noto Sans KR',sans-serif;font-size:0.78rem;font-weight:600;color:var(--muted);cursor:pointer;white-space:nowrap;-webkit-tap-highlight-color:transparent}
+    .cat-chip.active{background:var(--accent);border-color:var(--accent);color:#fff}
+    .cat-chip:active{opacity:0.75}
+    /* MODAL CATEGORY */
+    .cat-modal-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
+    .cat-modal-chip{padding:5px 12px;border-radius:20px;border:1.5px solid var(--border);background:var(--surface);font-family:'Noto Sans KR',sans-serif;font-size:0.8rem;color:var(--muted);cursor:pointer}
+    .cat-modal-chip.selected{background:var(--accent-bg);border-color:var(--accent);color:var(--accent-dark);font-weight:600}
+    .cat-new-row{display:flex;gap:6px;margin-top:6px}
+    .cat-new-input{flex:1;border:1px solid var(--border);outline:none;font-family:'Noto Sans KR',sans-serif;font-size:0.82rem;color:var(--body);background:var(--subtle);border-radius:8px;padding:8px 10px}
+    .cat-new-input:focus{border-color:var(--accent)}
+    .cat-new-btn{padding:8px 12px;border:none;border-radius:8px;background:var(--accent);color:#fff;font-family:'Noto Sans KR',sans-serif;font-size:0.82rem;cursor:pointer}
+    .recipe-box-cat{display:inline-block;font-size:0.68rem;padding:2px 7px;border-radius:10px;background:var(--accent-bg);color:var(--accent-dark);font-weight:600;margin-bottom:4px}
     #toast{position:fixed;bottom:20px;right:16px;background:var(--accent-dark);color:#fff;font-size:0.75rem;padding:7px 14px;border-radius:20px;opacity:0;transition:opacity .3s;z-index:999;pointer-events:none}
   </style>
 </head>
@@ -214,6 +229,9 @@
       </div>
       <button class="add-recipe-btn" id="open-add-btn">+ 추가</button>
     </div>
+    <div class="cat-bar" id="cat-bar">
+      <button class="cat-chip active" data-cat="">전체</button>
+    </div>
     <div class="recipe-grid" id="recipe-grid">
       <div class="empty-list">아직 레시피가 없어요</div>
     </div>
@@ -228,6 +246,13 @@
 
   <div class="modal-section">레시피 이름</div>
   <input class="modal-input" id="recipe-name-in" placeholder="예: 김치찌개"/>
+
+  <div class="modal-section">카테고리</div>
+  <div class="cat-modal-chips" id="cat-modal-chips"></div>
+  <div class="cat-new-row">
+    <input class="cat-new-input" id="cat-new-input" placeholder="새 카테고리 추가..."/>
+    <button class="cat-new-btn" id="cat-new-btn">추가</button>
+  </div>
 
   <div class="modal-section">총 서빙 수 (대용량 기준)</div>
   <div class="serving-row">
@@ -298,6 +323,9 @@ const PIN = '5896';
 let pinBuf = '';
 let recipes = [];
 let costIngredients = [];
+let allCategories = [];   // ['한식','찌개','볶음'...]
+let currentCat = '';      // active filter category
+let selectedCat = '';     // category selected in modal
 let invCache = {}; // {secId: [items]}
 let invConversions = {}; // {secId: {itemName: {inUnit,outUnit,ratio,eachVol,eachUnit}}}
 
@@ -361,6 +389,7 @@ function initFirestore(){
   // Load recipes
   onSnapshot(query(collection(db,'recipes'),orderBy('name')), snap=>{
     recipes = snap.docs.map(d=>({id:d.id,...d.data()}));
+    rebuildCategories();
     renderGrid(document.getElementById('search-box').value);
   });
   // Load inventory data + conversions for stock deduction
@@ -495,6 +524,7 @@ function resetForm(){
   document.getElementById('recipe-serving').value='';
   document.getElementById('ing-n').value='';document.getElementById('ing-a').value='';
   currentIngredients=[];renderIngTags();editingId=null;
+  selectedCat='';renderCatModalChips();
 }
 
 // ── Save recipe ───────────────────────────────────────
@@ -503,7 +533,8 @@ document.getElementById('save-recipe-btn').addEventListener('click',async()=>{
   const notes=document.getElementById('recipe-notes').value.trim();
   const serving=document.getElementById('recipe-serving').value;
   if(!name){showToast('레시피 이름을 입력하세요');return;}
-  const data={name,notes,serving:serving||'',ingredients:currentIngredients,updatedAt:Date.now()};
+  const category=selectedCat||'';
+  const data={name,notes,serving:serving||'',ingredients:currentIngredients,category,updatedAt:Date.now()};
   if(editingId){
     await updateDoc(doc(db,'recipes',editingId),data);showToast('수정됨 ✓');
   } else {
@@ -513,16 +544,64 @@ document.getElementById('save-recipe-btn').addEventListener('click',async()=>{
   closeModal();
 });
 
+// ── Categories ────────────────────────────────────────
+function rebuildCategories() {
+  const catSet = new Set();
+  recipes.forEach(r => { if (r.category) catSet.add(r.category); });
+  allCategories = [...catSet].sort((a,b) => a.localeCompare(b,'ko'));
+  renderCatBar();
+  renderCatModalChips();
+}
+
+function renderCatBar() {
+  const bar = document.getElementById('cat-bar');
+  if (!bar) return;
+  bar.innerHTML = '';
+  const allBtn = document.createElement('button');
+  allBtn.className = 'cat-chip' + (currentCat===''?' active':'');
+  allBtn.textContent = '전체';
+  allBtn.addEventListener('click', () => { currentCat=''; renderCatBar(); renderGrid(document.getElementById('search-box').value); });
+  bar.appendChild(allBtn);
+  allCategories.forEach(cat => {
+    const btn = document.createElement('button');
+    btn.className = 'cat-chip' + (currentCat===cat?' active':'');
+    btn.textContent = cat;
+    btn.addEventListener('click', () => { currentCat=cat; renderCatBar(); renderGrid(document.getElementById('search-box').value); });
+    bar.appendChild(btn);
+  });
+}
+
+function renderCatModalChips() {
+  const wrap = document.getElementById('cat-modal-chips');
+  if (!wrap) return;
+  wrap.innerHTML = '';
+  allCategories.forEach(cat => {
+    const chip = document.createElement('button');
+    chip.className = 'cat-modal-chip' + (selectedCat===cat?' selected':'');
+    chip.textContent = cat;
+    chip.addEventListener('click', () => {
+      selectedCat = selectedCat===cat ? '' : cat;
+      renderCatModalChips();
+    });
+    wrap.appendChild(chip);
+  });
+}
+
 // ── Render grid ───────────────────────────────────────
 function renderGrid(search=''){
   const grid=document.getElementById('recipe-grid');
-  const filtered=recipes.filter(r=>r.name.toLowerCase().includes(search.toLowerCase())).sort((a,b)=>a.name.localeCompare(b.name,'ko'));
+  const filtered=recipes.filter(r=>{
+    const matchSearch = r.name.toLowerCase().includes(search.toLowerCase());
+    const matchCat = !currentCat || r.category===currentCat;
+    return matchSearch && matchCat;
+  }).sort((a,b)=>a.name.localeCompare(b.name,'ko'));
   if(!filtered.length){grid.innerHTML='<div class="empty-list">레시피가 없어요</div>';return;}
   grid.innerHTML='';
   filtered.forEach(r=>{
     const box=document.createElement('div');box.className='recipe-box';
     const ingPreview=r.ingredients?.map(i=>`${i.amount}${i.unit} ${i.name}`).join(', ')||'';
     box.innerHTML=`
+      ${r.category?`<div class="recipe-box-cat">${r.category}</div>`:''}
       <div class="recipe-box-title">${r.name}</div>
       <div class="recipe-box-meta">
         ${r.serving?`<span>🍽 ${r.serving}인분</span>`:''}
@@ -535,6 +614,20 @@ function renderGrid(search=''){
   });
 }
 document.getElementById('search-box').addEventListener('input',function(){renderGrid(this.value);});
+
+// New category add
+document.getElementById('cat-new-btn').addEventListener('click', () => {
+  const inp = document.getElementById('cat-new-input');
+  const name = inp.value.trim();
+  if (!name) return;
+  if (!allCategories.includes(name)) allCategories.push(name);
+  selectedCat = name;
+  inp.value = '';
+  renderCatModalChips();
+});
+document.getElementById('cat-new-input').addEventListener('keydown', e => {
+  if (e.key==='Enter') document.getElementById('cat-new-btn').click();
+});
 
 // ── Detail ────────────────────────────────────────────
 function showDetail(id){
