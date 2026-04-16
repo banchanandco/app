@@ -80,9 +80,16 @@
     .ing-name-in:focus{border-color:var(--accent)}
     .ing-add-small{width:36px;height:36px;border:none;border-radius:8px;background:var(--accent);color:#fff;font-size:1.2rem;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center}
     .ing-add-small:active{background:var(--accent-dark)}
-    .ing-tag-list{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
-    .ing-tag{display:flex;align-items:center;gap:4px;background:var(--accent-bg);border:1px solid var(--accent-light);border-radius:20px;padding:4px 10px;font-size:0.78rem;color:var(--accent-dark)}
-    .ing-tag button{background:none;border:none;color:var(--muted);cursor:pointer;font-size:0.85rem;line-height:1;padding:0}
+    .ing-tag-list{display:flex;flex-direction:column;gap:6px;margin-bottom:8px}
+    .ing-tag{display:flex;align-items:center;gap:6px;background:var(--accent-bg);border:1.5px solid var(--accent-light);border-radius:10px;padding:6px 10px;font-size:0.82rem;color:var(--accent-dark)}
+    .ing-tag.editing{background:var(--subtle);border-color:var(--accent);border-radius:10px}
+    .ing-tag-text{flex:1;font-size:0.82rem;color:var(--accent-dark);cursor:pointer}
+    .ing-tag-text:active{opacity:0.7}
+    .ing-edit-amt{width:60px;border:1px solid var(--border);outline:none;font-family:'Noto Sans KR',sans-serif;font-size:0.82rem;color:var(--body);background:var(--surface);border-radius:6px;padding:4px 6px}
+    .ing-edit-unit{width:68px;border:1px solid var(--border);outline:none;font-family:'Noto Sans KR',sans-serif;font-size:0.78rem;color:var(--body);background:var(--surface);border-radius:6px;padding:4px 4px;cursor:pointer}
+    .ing-edit-name{flex:1;border:1px solid var(--border);outline:none;font-family:'Noto Sans KR',sans-serif;font-size:0.82rem;color:var(--body);background:var(--surface);border-radius:6px;padding:4px 7px}
+    .ing-edit-save{padding:4px 9px;border:none;border-radius:6px;background:var(--accent);color:#fff;font-size:0.75rem;cursor:pointer;white-space:nowrap}
+    .ing-tag-del{background:none;border:none;color:var(--muted);cursor:pointer;font-size:0.85rem;line-height:1;padding:0 2px;flex-shrink:0}
     .modal-save-btn{width:100%;padding:13px;border:none;border-radius:12px;background:var(--accent);color:#fff;font-family:'Noto Sans KR',sans-serif;font-size:0.95rem;font-weight:700;cursor:pointer;margin-top:16px}
     .modal-save-btn:active{background:var(--accent-dark)}
 
@@ -498,13 +505,58 @@ document.getElementById('close-detail-btn').addEventListener('click',closeDetail
 document.getElementById('open-add-btn').addEventListener('click',()=>{editingId=null;document.getElementById('modal-title').textContent='레시피 추가';openModal();});
 
 // ── Ingredient tags ───────────────────────────────────
+let editingIngIdx = null;
+
 function renderIngTags(){
-  const list=document.getElementById('ing-tag-list');list.innerHTML='';
+  const list=document.getElementById('ing-tag-list');
+  list.innerHTML='';
   currentIngredients.forEach((ing,i)=>{
-    const tag=document.createElement('div');tag.className='ing-tag';
-    tag.innerHTML=`<span>${ing.amount}${ing.unit} ${ing.name}</span><button data-i="${i}">×</button>`;
-    tag.querySelector('button').addEventListener('click',()=>{currentIngredients.splice(i,1);renderIngTags();});
-    list.appendChild(tag);
+    const tag=document.createElement('div');
+
+    if(editingIngIdx===i){
+      // EDIT MODE
+      tag.className='ing-tag editing';
+      const unitOpts=['cup','tbsp','tsp','Kg','g','l','ml','lb','oz','개','줄기','적당량'];
+      tag.innerHTML=`
+        <input class="ing-edit-amt" value="${ing.amount}" type="number" min="0" step="any" placeholder="양"/>
+        <select class="ing-edit-unit">${unitOpts.map(u=>`<option${u===ing.unit?' selected':''}>${u}</option>`).join('')}</select>
+        <input class="ing-edit-name" value="${ing.name}" placeholder="재료명"/>
+        <button class="ing-edit-save">✓</button>
+        <button class="ing-tag-del">✕</button>
+      `;
+      tag.querySelector('.ing-edit-save').addEventListener('click',()=>{
+        const amt=tag.querySelector('.ing-edit-amt').value;
+        const unit=tag.querySelector('.ing-edit-unit').value;
+        const name=tag.querySelector('.ing-edit-name').value.trim();
+        if(!name)return;
+        currentIngredients[i]={name,amount:amt||'',unit};
+        editingIngIdx=null;renderIngTags();
+      });
+      tag.querySelector('.ing-edit-name').addEventListener('keydown',e=>{
+        if(e.key==='Enter') tag.querySelector('.ing-edit-save').click();
+        if(e.key==='Escape'){editingIngIdx=null;renderIngTags();}
+      });
+      tag.querySelector('.ing-tag-del').addEventListener('click',()=>{
+        currentIngredients.splice(i,1);editingIngIdx=null;renderIngTags();
+      });
+      list.appendChild(tag);
+      // Focus name field
+      setTimeout(()=>tag.querySelector('.ing-edit-amt').focus(),50);
+    } else {
+      // VIEW MODE - tap to edit
+      tag.className='ing-tag';
+      tag.innerHTML=`
+        <span class="ing-tag-text">${ing.amount}${ing.unit} ${ing.name}</span>
+        <button class="ing-tag-del">✕</button>
+      `;
+      tag.querySelector('.ing-tag-text').addEventListener('click',()=>{
+        editingIngIdx=i;renderIngTags();
+      });
+      tag.querySelector('.ing-tag-del').addEventListener('click',()=>{
+        currentIngredients.splice(i,1);if(editingIngIdx===i)editingIngIdx=null;renderIngTags();
+      });
+      list.appendChild(tag);
+    }
   });
 }
 document.getElementById('add-ing-tag').addEventListener('click',()=>{
@@ -523,7 +575,7 @@ function resetForm(){
   document.getElementById('recipe-notes').value='';
   document.getElementById('recipe-serving').value='';
   document.getElementById('ing-n').value='';document.getElementById('ing-a').value='';
-  currentIngredients=[];renderIngTags();editingId=null;
+  currentIngredients=[];editingIngIdx=null;renderIngTags();editingId=null;
   selectedCat='';renderCatModalChips();
 }
 
