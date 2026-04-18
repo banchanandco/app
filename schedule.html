@@ -111,6 +111,22 @@
     .copy-btn:active{background:var(--accent-bg)}
 
     #toast{position:fixed;bottom:20px;right:16px;background:var(--accent-dark);color:#fff;font-size:0.75rem;padding:7px 14px;border-radius:20px;opacity:0;transition:opacity .3s;z-index:999;pointer-events:none;font-family:'DM Mono',monospace}
+
+
+    /* ── RESPONSIVE MAX WIDTH ─────────────────────────── */
+    @media (min-width: 620px) {
+      body {
+        max-width: 580px;
+        margin: 0 auto;
+        box-shadow: 0 0 60px rgba(0,0,0,0.18);
+        min-height: 100vh;
+      }
+      html { background: #dedad3; }
+      header { left: auto; right: auto; width: 100%; }
+      .tab-bar { width: 100%; }
+      .drawer { position: fixed; }
+      .drawer-overlay { position: fixed; }
+    }
   </style>
 </head>
 <body>

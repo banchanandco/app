@@ -56,6 +56,22 @@
     .nav-btn-icon svg{width:28px;height:28px}
     .nav-btn-label{font-size:0.9rem;font-weight:600;color:var(--heading)}
     .nav-btn-sub{font-size:0.72rem;color:var(--muted);text-align:center}
+
+
+    /* ── RESPONSIVE MAX WIDTH ─────────────────────────── */
+    @media (min-width: 620px) {
+      body {
+        max-width: 580px;
+        margin: 0 auto;
+        box-shadow: 0 0 60px rgba(0,0,0,0.18);
+        min-height: 100vh;
+      }
+      html { background: #dedad3; }
+      header { left: auto; right: auto; width: 100%; }
+      .tab-bar { width: 100%; }
+      .drawer { position: fixed; }
+      .drawer-overlay { position: fixed; }
+    }
   </style>
 </head>
 <body>

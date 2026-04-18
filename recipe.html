@@ -177,6 +177,22 @@
     .cat-new-btn{padding:8px 12px;border:none;border-radius:8px;background:var(--accent);color:#fff;font-family:'Noto Sans KR',sans-serif;font-size:0.82rem;cursor:pointer}
     .recipe-box-cat{display:inline-block;font-size:0.68rem;padding:2px 7px;border-radius:10px;background:var(--accent-bg);color:var(--accent-dark);font-weight:600;margin-bottom:4px}
     #toast{position:fixed;bottom:20px;right:16px;background:var(--accent-dark);color:#fff;font-size:0.75rem;padding:7px 14px;border-radius:20px;opacity:0;transition:opacity .3s;z-index:999;pointer-events:none}
+
+
+    /* ── RESPONSIVE MAX WIDTH ─────────────────────────── */
+    @media (min-width: 620px) {
+      body {
+        max-width: 580px;
+        margin: 0 auto;
+        box-shadow: 0 0 60px rgba(0,0,0,0.18);
+        min-height: 100vh;
+      }
+      html { background: #dedad3; }
+      header { left: auto; right: auto; width: 100%; }
+      .tab-bar { width: 100%; }
+      .drawer { position: fixed; }
+      .drawer-overlay { position: fixed; }
+    }
   </style>
 </head>
 <body>
