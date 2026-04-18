@@ -73,8 +73,8 @@
     /* EDIT MODAL */
     .edit-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:400;opacity:0;pointer-events:none;transition:opacity .25s}
     .edit-overlay.open{opacity:1;pointer-events:all}
-    .edit-modal{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-radius:22px 22px 0 0;z-index:401;padding:20px 16px 40px;transform:translateY(100%);transition:transform .3s ease}
-    .edit-modal.open{transform:translateY(0)}
+    .edit-modal{position:fixed;left:50%;bottom:0;transform:translateX(-50%);width:100%;max-width:580px;;background:var(--surface);border-radius:22px 22px 0 0;z-index:401;padding:20px 16px 40px;transform:translateY(100%);transition:transform .3s ease}
+    .edit-modal.open{transform:translateX(-50%) translateY(0)}
     .edit-handle{width:40px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 16px}
     .edit-title{font-size:1rem;font-weight:700;color:var(--heading);margin-bottom:16px}
     .edit-save-btn{width:100%;padding:12px;border:none;border-radius:10px;background:var(--accent);color:#fff;font-family:'Noto Sans KR',sans-serif;font-size:0.9rem;font-weight:700;cursor:pointer;margin-top:12px}
