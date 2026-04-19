@@ -221,7 +221,8 @@
 <div id="lock-screen">
   <div class="lock-icon">🔒</div>
   <h2>레시피</h2>
-  <p>PIN을 입력하세요</p>
+  <p id="pin-mode-label">PIN을 입력하세요</p>
+  <div id="pin-setup-hint" class="pin-setup-msg" style="display:none"></div>
   <div class="pin-display" id="pin-display">
     <div class="pin-dot" id="d0"></div><div class="pin-dot" id="d1"></div>
     <div class="pin-dot" id="d2"></div><div class="pin-dot" id="d3"></div>
@@ -233,6 +234,7 @@
     <button class="pin-btn" data-n="7">7</button><button class="pin-btn" data-n="8">8</button><button class="pin-btn" data-n="9">9</button>
     <button class="pin-btn" data-n="del" style="grid-column:1">⌫</button><button class="pin-btn" data-n="0">0</button><div></div>
   </div>
+  <button class="pin-mode-btn" id="pin-change-btn" style="display:none">PIN 변경</button>
 </div>
 
 <!-- APP -->
@@ -342,8 +344,10 @@ onAuthStateChanged(_auth, user => {
   _currentUser = user;
 });
 
-const PIN = '5896';
 let pinBuf = '';
+let currentPIN = null;
+let pinMode = 'enter';
+let newPinTemp = '';
 let recipes = [];
 let costIngredients = [];
 let allCategories = [];   // ['한식','찌개','볶음'...]
@@ -361,36 +365,79 @@ let editingId = null;
 let currentDetailId = null;
 
 // ── PIN ──────────────────────────────────────────────
+// ── PIN ──────────────────────────────────────────────
+async function loadPIN() {
+  try {
+    const snap = await getDoc(doc(db,'app_config','pin'));
+    currentPIN = snap.exists() ? snap.data().value : null;
+  } catch(e) { currentPIN = null; }
+  if (sessionStorage.getItem('recipe_auth')==='1') { showApp(); return; }
+  if (!currentPIN) {
+    pinMode = 'setup';
+    document.getElementById('pin-mode-label').textContent = 'PIN을 새로 설정하세요';
+    document.getElementById('pin-setup-hint').style.display = 'block';
+    document.getElementById('pin-setup-hint').textContent = '4자리 PIN을 설정하면 원가계산과 레시피에 함께 적용돼요';
+  } else {
+    pinMode = 'enter';
+    document.getElementById('pin-mode-label').textContent = 'PIN을 입력하세요';
+    document.getElementById('pin-change-btn').style.display = 'block';
+  }
+}
+async function savePIN(pin){await setDoc(doc(db,'app_config','pin'),{value:pin,updatedAt:Date.now()});currentPIN=pin;}
+function showApp(){document.getElementById('lock-screen').style.display='none';document.getElementById('app').style.display='';}
+function showPinError(msg){document.getElementById('pin-error').textContent=msg;pinBuf='';updateDots();setTimeout(()=>document.getElementById('pin-error').textContent='',1800);}
 function updateDots(){for(let i=0;i<4;i++)document.getElementById(`d${i}`).classList.toggle('filled',i<pinBuf.length);}
+
 document.querySelectorAll('.pin-btn').forEach(btn=>{
-  btn.addEventListener('click',()=>{
+  btn.addEventListener('click',async()=>{
     const n=btn.dataset.n;
-    if(n==='del') pinBuf=pinBuf.slice(0,-1);
-    else if(pinBuf.length<4) pinBuf+=n;
+    if(n==='del'){pinBuf=pinBuf.slice(0,-1);updateDots();return;}
+    if(pinBuf.length<4) pinBuf+=n;
     updateDots();
     if(pinBuf.length===4){
-      if(pinBuf===PIN){
-        sessionStorage.setItem('recipe_auth','1');
-        document.getElementById('lock-screen').style.display='none';
-        document.getElementById('app').style.display='block';
-        if (_currentUser) initFirestore();
-      } else {
-        document.getElementById('pin-error').textContent='잘못된 PIN이에요';
-        pinBuf=''; updateDots();
-        setTimeout(()=>document.getElementById('pin-error').textContent='',1500);
+      const entered=pinBuf;pinBuf='';updateDots();
+      if(pinMode==='enter'){
+        if(entered===currentPIN){sessionStorage.setItem('recipe_auth','1');showApp();}
+        else showPinError('PIN이 틀렸어요');
+      } else if(pinMode==='setup'){
+        newPinTemp=entered;pinMode='change_confirm';
+        document.getElementById('pin-mode-label').textContent='한 번 더 입력하세요';
+        document.getElementById('pin-setup-hint').textContent='PIN을 다시 입력해 확인해주세요';
+      } else if(pinMode==='change_old'){
+        if(entered===currentPIN){
+          pinMode='change_new';
+          document.getElementById('pin-mode-label').textContent='새 PIN을 입력하세요';
+        } else {
+          showPinError('기존 PIN이 틀렸어요');
+          pinMode='enter';
+          document.getElementById('pin-mode-label').textContent='PIN을 입력하세요';
+          document.getElementById('pin-change-btn').style.display='block';
+        }
+      } else if(pinMode==='change_new'){
+        newPinTemp=entered;pinMode='change_confirm';
+        document.getElementById('pin-mode-label').textContent='새 PIN을 한 번 더 입력하세요';
+      } else if(pinMode==='change_confirm'){
+        if(entered===newPinTemp){
+          await savePIN(entered);
+          sessionStorage.setItem('recipe_auth','1');showApp();
+        } else {
+          showPinError('PIN이 일치하지 않아요. 다시 시도하세요');
+          pinMode=currentPIN?'change_new':'setup';
+          document.getElementById('pin-mode-label').textContent=currentPIN?'새 PIN을 입력하세요':'PIN을 새로 설정하세요';
+        }
       }
     }
   });
 });
-if(sessionStorage.getItem('recipe_auth')==='1'){
-  document.getElementById('lock-screen').style.display='none';
-  document.getElementById('app').style.display='block';
-  // Wait for auth state before loading Firestore
-  onAuthStateChanged(_auth, user => {
-    if (user) initFirestore();
-  });
-}
+document.getElementById('pin-change-btn').addEventListener('click',()=>{
+  pinMode='change_old';pinBuf='';updateDots();
+  document.getElementById('pin-mode-label').textContent='기존 PIN을 입력하세요';
+  document.getElementById('pin-setup-hint').style.display='block';
+  document.getElementById('pin-setup-hint').textContent='기존 PIN 확인 후 새 PIN을 설정합니다';
+  document.getElementById('pin-change-btn').style.display='none';
+});
 window.lockApp=()=>{sessionStorage.removeItem('recipe_auth');location.reload();};
+loadPIN();
 
   // Drawer
   const _drawerEl = document.getElementById('drawer');
