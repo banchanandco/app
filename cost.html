@@ -270,8 +270,7 @@
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
   import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-  import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-  import { getFirestore, collection, onSnapshot, addDoc, deleteDoc, updateDoc, doc, orderBy, query }
+  import { getFirestore, collection, onSnapshot, addDoc, deleteDoc, updateDoc, doc, getDoc, setDoc, orderBy, query }
     from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
   const _fbApp = initializeApp({apiKey:"AIzaSyArW3yhj81OJpOkCEYfyaelgcdo8o_IAPw",authDomain:"banchan-inventory-144bd.firebaseapp.com",projectId:"banchan-inventory-144bd",storageBucket:"banchan-inventory-144bd.firebasestorage.app",messagingSenderId:"1022526862273",appId:"1:1022526862273:web:12a025d9db24c7c6b83540"});
@@ -279,7 +278,11 @@
   const _db   = getFirestore(_fbApp);
   const db    = _db;  // alias for onSnapshot calls
   // Redirect if not logged in
-  onAuthStateChanged(_auth, user => { if (!user) location.href = 'index.html'; });
+  let _pinLoaded = false;
+  onAuthStateChanged(_auth, user => {
+    if (!user) { location.href = 'index.html'; return; }
+    if (!_pinLoaded) { _pinLoaded = true; loadPIN(); }
+  });
 
   let pinBuf = '';
   let ingredients = [];
@@ -292,8 +295,17 @@
   async function loadPIN() {
     try {
       const snap = await getDoc(doc(_db,'app_config','pin'));
-      currentPIN = snap.exists() ? snap.data().value : null;
-    } catch(e) { currentPIN = null; }
+      if (snap.exists()) {
+        currentPIN = snap.data().value;
+        console.log('[PIN] Loaded from Firebase:', JSON.stringify(currentPIN), 'type:', typeof currentPIN);
+      } else {
+        currentPIN = null;
+        console.log('[PIN] No PIN document found in Firebase');
+      }
+    } catch(e) {
+      currentPIN = null;
+      console.error('[PIN] Load error:', e);
+    }
 
     if (sessionStorage.getItem('cost_auth')==='1') {
       showApp(); return;
@@ -345,11 +357,12 @@
         pinBuf = ''; updateDots();
 
         if (pinMode === 'enter') {
-          if (entered === currentPIN) {
+          console.log('[PIN] Entered:', JSON.stringify(entered), 'vs currentPIN:', JSON.stringify(currentPIN));
+          if (String(entered) === String(currentPIN)) {
             sessionStorage.setItem('cost_auth','1');
             showApp();
           } else {
-            showError('잘못된 PIN이에요');
+            showError('잘못된 PIN이에요 (코드: ' + (currentPIN===null?'NULL':'MISMATCH') + ')');
           }
 
         } else if (pinMode === 'setup') {
@@ -399,9 +412,6 @@
   });
 
   window.lockApp = () => { sessionStorage.removeItem('cost_auth'); location.reload(); };
-
-  // Load PIN from Firebase
-  loadPIN();
 
   // Drawer
   const _drawerEl = document.getElementById('drawer');
