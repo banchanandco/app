@@ -1,0 +1,21 @@
+# 시스템 파일
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# 에디터
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# 임시 파일
+*.tmp
+*.log
+
+# 환경 설정 (민감한 정보 - 개인 config는 절대 올리지 마세요)
+# config.local.js
+
+# 노트
+notes.txt
+todo.txt
