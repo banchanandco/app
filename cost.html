@@ -275,9 +275,9 @@
     from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
   const _fbApp = initializeApp({apiKey:"AIzaSyArW3yhj81OJpOkCEYfyaelgcdo8o_IAPw",authDomain:"banchan-inventory-144bd.firebaseapp.com",projectId:"banchan-inventory-144bd",storageBucket:"banchan-inventory-144bd.firebasestorage.app",messagingSenderId:"1022526862273",appId:"1:1022526862273:web:12a025d9db24c7c6b83540"});
-  const db = getFirestore(_fbApp);
   const _auth = getAuth(_fbApp);
   const _db   = getFirestore(_fbApp);
+  const db    = _db;  // alias for onSnapshot calls
   // Redirect if not logged in
   onAuthStateChanged(_auth, user => { if (!user) location.href = 'index.html'; });
 

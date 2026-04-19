@@ -365,7 +365,6 @@ let editingId = null;
 let currentDetailId = null;
 
 // ── PIN ──────────────────────────────────────────────
-// ── PIN ──────────────────────────────────────────────
 async function loadPIN() {
   try {
     const snap = await getDoc(doc(db,'app_config','pin'));
@@ -384,7 +383,11 @@ async function loadPIN() {
   }
 }
 async function savePIN(pin){await setDoc(doc(db,'app_config','pin'),{value:pin,updatedAt:Date.now()});currentPIN=pin;}
-function showApp(){document.getElementById('lock-screen').style.display='none';document.getElementById('app').style.display='';}
+function showApp(){
+  document.getElementById('lock-screen').style.display='none';
+  document.getElementById('app').style.display='';
+  if(typeof initFirestore==='function') initFirestore();
+}
 function showPinError(msg){document.getElementById('pin-error').textContent=msg;pinBuf='';updateDots();setTimeout(()=>document.getElementById('pin-error').textContent='',1800);}
 function updateDots(){for(let i=0;i<4;i++)document.getElementById(`d${i}`).classList.toggle('filled',i<pinBuf.length);}
 
