@@ -329,6 +329,43 @@ import { getAuth, signOut, onAuthStateChanged } from "https://www.gstatic.com/fi
 import { getFirestore, collection, doc, onSnapshot, addDoc, deleteDoc, updateDoc, getDoc, setDoc, query, orderBy }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
+// ── Smart unit conversion ────────────────────────────
+function smartUnit(amount, unit) {
+  if (amount === null || amount === undefined || amount === '' || isNaN(amount)) return {amount, unit};
+  let amt = parseFloat(amount); let u = unit;
+  if (!u) return {amount: amt, unit: u};
+  const pairs = [
+    {small:'tsp', big:'tbsp', ratio:3},
+    {small:'tbsp', big:'cup', ratio:16},
+    {small:'g', big:'Kg', ratio:1000},
+    {small:'oz', big:'lb', ratio:16},
+    {small:'ml', big:'l', ratio:1000},
+  ];
+  for (let iter=0; iter<3; iter++) {
+    let changed = false;
+    pairs.forEach(p => {
+      if (u === p.big && amt < 0.4 && amt > 0) { amt = amt * p.ratio; u = p.small; changed = true; }
+    });
+    pairs.forEach(p => {
+      if (u === p.small && amt >= p.ratio) {
+        const newAmt = amt / p.ratio;
+        if (newAmt >= 0.4) { amt = newAmt; u = p.big; changed = true; }
+      }
+    });
+    if (!changed) break;
+  }
+  let displayAmt;
+  if (Number.isInteger(amt)) displayAmt = amt;
+  else if (amt >= 10) displayAmt = Math.round(amt*10)/10;
+  else displayAmt = Math.round(amt*100)/100;
+  return {amount: displayAmt, unit: u};
+}
+function fmtSmart(amount, unit) {
+  const s = smartUnit(amount, unit);
+  return s.amount + ' ' + s.unit;
+}
+
+
 const app = initializeApp({
   apiKey:"AIzaSyArW3yhj81OJpOkCEYfyaelgcdo8o_IAPw",
   authDomain:"banchan-inventory-144bd.firebaseapp.com",
@@ -600,7 +637,7 @@ function mkOlRow(item) {
   });
   const info = document.createElement('div'); info.className='ol-info';
   const alreadyInList = shoppingItems.find(s=>s.name===item.name);
-  info.innerHTML=`<div class="ol-name">${item.name}${alreadyInList?'<span style="font-size:0.68rem;color:var(--muted);margin-left:6px">이미 추가됨</span>':''}</div><div class="ol-sub">${item.secIcon} ${item.secLabel} · 잔여 ${item.remaining}${item.unit}</div>`;
+  info.innerHTML=`<div class="ol-name">${item.name}${alreadyInList?'<span style="font-size:0.68rem;color:var(--muted);margin-left:6px">이미 추가됨</span>':''}</div><div class="ol-sub">${item.secIcon} ${item.secLabel} · 잔여 ${fmtSmart(item.remaining, item.unit)}</div>`;
   const pct = document.createElement('span');
   pct.className='ol-pct '+(item.isUrgent?'urgent':'warn');
   pct.textContent=item.pct.toFixed(0)+'%';

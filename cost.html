@@ -321,6 +321,43 @@
   import { getFirestore, collection, onSnapshot, addDoc, deleteDoc, updateDoc, doc, getDoc, setDoc, orderBy, query }
     from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
+// ── Smart unit conversion ────────────────────────────
+function smartUnit(amount, unit) {
+  if (amount === null || amount === undefined || amount === '' || isNaN(amount)) return {amount, unit};
+  let amt = parseFloat(amount); let u = unit;
+  if (!u) return {amount: amt, unit: u};
+  const pairs = [
+    {small:'tsp', big:'tbsp', ratio:3},
+    {small:'tbsp', big:'cup', ratio:16},
+    {small:'g', big:'Kg', ratio:1000},
+    {small:'oz', big:'lb', ratio:16},
+    {small:'ml', big:'l', ratio:1000},
+  ];
+  for (let iter=0; iter<3; iter++) {
+    let changed = false;
+    pairs.forEach(p => {
+      if (u === p.big && amt < 0.4 && amt > 0) { amt = amt * p.ratio; u = p.small; changed = true; }
+    });
+    pairs.forEach(p => {
+      if (u === p.small && amt >= p.ratio) {
+        const newAmt = amt / p.ratio;
+        if (newAmt >= 0.4) { amt = newAmt; u = p.big; changed = true; }
+      }
+    });
+    if (!changed) break;
+  }
+  let displayAmt;
+  if (Number.isInteger(amt)) displayAmt = amt;
+  else if (amt >= 10) displayAmt = Math.round(amt*10)/10;
+  else displayAmt = Math.round(amt*100)/100;
+  return {amount: displayAmt, unit: u};
+}
+function fmtSmart(amount, unit) {
+  const s = smartUnit(amount, unit);
+  return s.amount + ' ' + s.unit;
+}
+
+
   const _fbApp = initializeApp({apiKey:"AIzaSyArW3yhj81OJpOkCEYfyaelgcdo8o_IAPw",authDomain:"banchan-inventory-144bd.firebaseapp.com",projectId:"banchan-inventory-144bd",storageBucket:"banchan-inventory-144bd.firebasestorage.app",messagingSenderId:"1022526862273",appId:"1:1022526862273:web:12a025d9db24c7c6b83540"});
   const _auth = getAuth(_fbApp);
   const _db   = getFirestore(_fbApp);
@@ -607,7 +644,7 @@
       row.innerHTML=`
         <div>
           <div class="ing-name">${ing.name}</div>
-          <div class="ing-info">$${ing.price?.toFixed(2)} / ${ing.amount}${ing.unit}</div>
+          <div class="ing-info">$${ing.price?.toFixed(2)} / ${fmtSmart(ing.amount, ing.unit)}</div>
           <div class="ing-actions">
             <button class="ing-edit-btn" data-id="${ing.id}">✏️ 수정</button>
             <button class="ing-del" data-id="${ing.id}">삭제</button>
