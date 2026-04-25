@@ -12,6 +12,39 @@
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
   <style>
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    /* ── DARK MODE ─────────────────────────────────────── */
+    @media (prefers-color-scheme: dark) {
+      body[data-theme="auto"], body[data-theme="dark"] {
+        --bg:#1a1916;
+        --surface:#252320;
+        --border:#3d3933;
+        --subtle:#2d2a26;
+        --muted:#8a857d;
+        --body:#e0dcd4;
+        --heading:#f5f1ea;
+        --accent:#9caf88;
+        --accent-dark:#b8c8a4;
+        --accent-bg:#2a3328;
+        --accent-light:#3d4a39;
+        --urgent-bg:#3a1e1e;
+        --warn-bg:#3a2a1a;
+      }
+    }
+    body[data-theme="dark"] {
+      --bg:#1a1916;
+      --surface:#252320;
+      --border:#3d3933;
+      --subtle:#2d2a26;
+      --muted:#8a857d;
+      --body:#e0dcd4;
+      --heading:#f5f1ea;
+      --accent:#9caf88;
+      --accent-dark:#b8c8a4;
+      --accent-bg:#2a3328;
+      --accent-light:#3d4a39;
+      --urgent-bg:#3a1e1e;
+      --warn-bg:#3a2a1a;
+    }
     :root{
       --accent:#9caf88;--accent-dark:#7a9068;--accent-bg:#f0f5ec;--accent-light:#c8d9bc;
       --bg:#f5f4f0;--surface:#fff;--border:#dedad3;--subtle:#eceae5;
@@ -112,6 +145,12 @@
     .ol-empty{padding:32px;text-align:center;color:var(--muted);font-size:0.82rem}
     .ol-del-btn{padding:7px 12px;border:none;border-radius:8px;background:#fdf0f0;color:#c0392b;font-family:'Noto Sans KR',sans-serif;font-size:0.78rem;font-weight:600;cursor:pointer}
     .ol-del-btn:active{background:#fadbd8}
+    /* MENTION */
+    .mention{display:inline-block;background:var(--accent-bg);color:var(--accent-dark);font-weight:600;padding:1px 6px;border-radius:6px;font-size:0.95em}
+    .mention-suggest{position:absolute;background:var(--surface);border:1.5px solid var(--accent);border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,0.15);max-height:160px;overflow-y:auto;z-index:600;min-width:160px}
+    .mention-item{padding:9px 14px;font-size:0.85rem;color:var(--body);cursor:pointer;border-bottom:1px solid var(--subtle)}
+    .mention-item:last-child{border-bottom:none}
+    .mention-item:hover,.mention-item.active{background:var(--accent-bg);color:var(--accent-dark)}
     /* DETAIL SHEET */
     .sheet-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:400;opacity:0;pointer-events:none;transition:opacity .25s}
     .sheet-overlay.open{opacity:1;pointer-events:all}
@@ -158,9 +197,20 @@
       .drawer { position: fixed; }
       .drawer-overlay { position: fixed; }
     }
+
+    .theme-toggle-row{margin:0 16px 12px;padding:10px 14px;border:1.5px solid var(--border);border-radius:10px;background:var(--surface);display:flex;align-items:center;justify-content:space-between;cursor:pointer}
+    .theme-toggle-row:active{opacity:0.7}
+    .theme-toggle-label{font-size:0.85rem;color:var(--body);font-weight:500;display:flex;align-items:center;gap:8px}
+    .theme-toggle-val{font-size:0.78rem;color:var(--muted)}
   </style>
 </head>
 <body>
+<script>
+(function(){
+  const saved = localStorage.getItem('app_theme') || 'auto';
+  document.body.setAttribute('data-theme', saved);
+})();
+</script>
 
 <div class="drawer-overlay" id="drawer-overlay"></div>
 <div class="drawer" id="drawer">
@@ -178,6 +228,10 @@
     <div class="drawer-item" onclick="location.href='schedule.html'"><span class="di-icon">📅</span> 스케줄</div>
     <div class="drawer-item" onclick="location.href='cost.html'"><span class="di-icon">🧮</span> 원가계산</div>
     <div class="drawer-item" onclick="location.href='recipe.html'"><span class="di-icon">📖</span> 레시피</div>
+  </div>
+  <div class="theme-toggle-row" id="theme-toggle-row">
+    <span class="theme-toggle-label" id="theme-icon-label">🌙 다크 모드</span>
+    <span class="theme-toggle-val" id="theme-val">자동</span>
   </div>
   <button class="drawer-logout" id="logout-btn">로그아웃</button>
 </div>
@@ -325,6 +379,12 @@ document.querySelectorAll('.tab-btn').forEach(btn=>{
 // ── Toast ─────────────────────────────────────────────
 function showToast(msg){const el=document.getElementById('toast');el.textContent=msg;el.style.opacity='1';clearTimeout(el._t);el._t=setTimeout(()=>el.style.opacity='0',2000);}
 function fmtDate(ts){if(!ts)return'';const d=new Date(ts);return`${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;}
+
+// Mention helper - escape HTML then highlight @mentions
+function escapeHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function formatMentions(text){
+  return escapeHtml(text).replace(/@([\w가-힣ㄱ-ㅎㅏ-ㅣ]+)/g, '<span class="mention">@$1</span>');
+}
 
 // ── Firestore ─────────────────────────────────────────
 function initData(){
@@ -551,6 +611,76 @@ function mkOlRow(item) {
 // ════════════════════════════════════════════════════
 // MEMO
 // ════════════════════════════════════════════════════
+
+// ── @ Mention autocomplete ───────────────────────────
+const ALLOWED_MENTIONS = ['Josh', 'Jackie', 'Juhun', '전체']; // 멘션 가능한 이름 목록 (필요시 수정)
+let mentionSuggestEl = null;
+let mentionTargetTextarea = null;
+let mentionStartPos = -1;
+
+function initMentionAutocomplete(textarea) {
+  textarea.addEventListener('input', (e) => {
+    const pos = textarea.selectionStart;
+    const text = textarea.value;
+    // Find @ before cursor
+    let atPos = -1;
+    for (let i = pos - 1; i >= 0; i--) {
+      const ch = text[i];
+      if (ch === '@') { atPos = i; break; }
+      if (/\s/.test(ch)) break;
+    }
+    if (atPos === -1) { hideMentionSuggest(); return; }
+    const query = text.substring(atPos + 1, pos).toLowerCase();
+    const matches = ALLOWED_MENTIONS.filter(n => n.toLowerCase().startsWith(query));
+    if (!matches.length) { hideMentionSuggest(); return; }
+    showMentionSuggest(matches, textarea, atPos);
+  });
+  textarea.addEventListener('blur', () => setTimeout(hideMentionSuggest, 200));
+}
+
+function showMentionSuggest(names, textarea, atPos) {
+  hideMentionSuggest();
+  mentionTargetTextarea = textarea;
+  mentionStartPos = atPos;
+  mentionSuggestEl = document.createElement('div');
+  mentionSuggestEl.className = 'mention-suggest';
+  names.forEach(n => {
+    const item = document.createElement('div');
+    item.className = 'mention-item';
+    item.textContent = '@' + n;
+    item.addEventListener('mousedown', (e) => { e.preventDefault(); insertMention(n); });
+    mentionSuggestEl.appendChild(item);
+  });
+  // Position below textarea cursor area
+  const rect = textarea.getBoundingClientRect();
+  mentionSuggestEl.style.left = (rect.left + 14) + 'px';
+  mentionSuggestEl.style.top  = (rect.top + 36 + window.scrollY) + 'px';
+  document.body.appendChild(mentionSuggestEl);
+}
+
+function insertMention(name) {
+  if (!mentionTargetTextarea) return;
+  const text = mentionTargetTextarea.value;
+  const pos = mentionTargetTextarea.selectionStart;
+  const before = text.substring(0, mentionStartPos);
+  const after = text.substring(pos);
+  mentionTargetTextarea.value = before + '@' + name + ' ' + after;
+  const newPos = before.length + name.length + 2;
+  mentionTargetTextarea.focus();
+  mentionTargetTextarea.setSelectionRange(newPos, newPos);
+  hideMentionSuggest();
+}
+
+function hideMentionSuggest() {
+  if (mentionSuggestEl) { mentionSuggestEl.remove(); mentionSuggestEl = null; }
+  mentionTargetTextarea = null;
+  mentionStartPos = -1;
+}
+
+// Init on memo inputs (compose + edit)
+initMentionAutocomplete(document.getElementById('memo-body-input'));
+initMentionAutocomplete(document.getElementById('memo-edit-body'));
+
 document.getElementById('memo-save-btn').addEventListener('click',async()=>{
   const title=document.getElementById('memo-title-input').value.trim();
   const body=document.getElementById('memo-body-input').value.trim();
@@ -578,7 +708,7 @@ function renderMemos(){
   memos.forEach(memo=>{
     const card=document.createElement('div');card.className='memo-card';
     const titleEl=document.createElement('div');titleEl.className='memo-card-title';titleEl.textContent=memo.title;
-    const bodyEl=document.createElement('div');bodyEl.className='memo-card-body';bodyEl.textContent=memo.body;
+    const bodyEl=document.createElement('div');bodyEl.className='memo-card-body';bodyEl.innerHTML=formatMentions(memo.body||'');
     const metaEl=document.createElement('div');metaEl.className='memo-card-meta';
     metaEl.innerHTML=`<span>${fmtDate(memo.createdAt)}</span>${memo.addedBy?`<span>${memo.addedBy}</span>`:''}`;
     const actionsEl=document.createElement('div');actionsEl.className='memo-card-actions';
@@ -603,7 +733,7 @@ function renderMemos(){
 function openMemoDetail(memo){
   detailMemoId=memo.id;
   document.getElementById('detail-title').textContent=memo.title;
-  document.getElementById('detail-body').textContent=memo.body;
+  document.getElementById('detail-body').innerHTML=formatMentions(memo.body||'');
   document.getElementById('detail-meta').textContent=`${fmtDate(memo.createdAt)}${memo.addedBy?' · '+memo.addedBy:''}`;
   document.getElementById('detail-overlay').classList.add('open');
   document.getElementById('detail-sheet').classList.add('open');
@@ -646,5 +776,28 @@ document.getElementById('memo-edit-save').addEventListener('click',async()=>{
 });
 </script>
 <script>if('serviceWorker' in navigator){navigator.serviceWorker.register('/app/sw.js').catch(()=>{});}</script>
+<script>
+(function(){
+  const row = document.getElementById('theme-toggle-row');
+  if(!row) return;
+  const valEl = document.getElementById('theme-val');
+  const iconEl = document.getElementById('theme-icon-label');
+  const update = () => {
+    const t = localStorage.getItem('app_theme') || 'auto';
+    const map = {auto:'자동', light:'라이트', dark:'다크'};
+    const icons = {auto:'🌓 테마', light:'☀️ 라이트', dark:'🌙 다크'};
+    valEl.textContent = map[t];
+    iconEl.textContent = icons[t];
+  };
+  update();
+  row.addEventListener('click', () => {
+    const cur = localStorage.getItem('app_theme') || 'auto';
+    const next = cur==='auto' ? 'light' : cur==='light' ? 'dark' : 'auto';
+    localStorage.setItem('app_theme', next);
+    document.body.setAttribute('data-theme', next);
+    update();
+  });
+})();
+</script>
 </body>
 </html>

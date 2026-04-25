@@ -13,6 +13,39 @@
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
   <style>
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    /* ── DARK MODE ─────────────────────────────────────── */
+    @media (prefers-color-scheme: dark) {
+      body[data-theme="auto"], body[data-theme="dark"] {
+        --bg:#1a1916;
+        --surface:#252320;
+        --border:#3d3933;
+        --subtle:#2d2a26;
+        --muted:#8a857d;
+        --body:#e0dcd4;
+        --heading:#f5f1ea;
+        --accent:#9caf88;
+        --accent-dark:#b8c8a4;
+        --accent-bg:#2a3328;
+        --accent-light:#3d4a39;
+        --urgent-bg:#3a1e1e;
+        --warn-bg:#3a2a1a;
+      }
+    }
+    body[data-theme="dark"] {
+      --bg:#1a1916;
+      --surface:#252320;
+      --border:#3d3933;
+      --subtle:#2d2a26;
+      --muted:#8a857d;
+      --body:#e0dcd4;
+      --heading:#f5f1ea;
+      --accent:#9caf88;
+      --accent-dark:#b8c8a4;
+      --accent-bg:#2a3328;
+      --accent-light:#3d4a39;
+      --urgent-bg:#3a1e1e;
+      --warn-bg:#3a2a1a;
+    }
     :root{--accent:#9caf88;--accent-dark:#7a9068;--accent-bg:#f0f5ec;--accent-light:#c8d9bc;--bg:#f5f4f0;--surface:#fff;--border:#dedad3;--subtle:#eceae5;--muted:#9a9488;--body:#4a4540;--heading:#2a2520;--brown:#5c3d2e}
     body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--body);min-height:100vh;padding-bottom:60px}
 
@@ -193,9 +226,20 @@
       .drawer { position: fixed; }
       .drawer-overlay { position: fixed; }
     }
+
+    .theme-toggle-row{margin:0 16px 12px;padding:10px 14px;border:1.5px solid var(--border);border-radius:10px;background:var(--surface);display:flex;align-items:center;justify-content:space-between;cursor:pointer}
+    .theme-toggle-row:active{opacity:0.7}
+    .theme-toggle-label{font-size:0.85rem;color:var(--body);font-weight:500;display:flex;align-items:center;gap:8px}
+    .theme-toggle-val{font-size:0.78rem;color:var(--muted)}
   </style>
 </head>
 <body>
+<script>
+(function(){
+  const saved = localStorage.getItem('app_theme') || 'auto';
+  document.body.setAttribute('data-theme', saved);
+})();
+</script>
 
 <!-- LOCK -->
 <div class="drawer-overlay" id="drawer-overlay"></div>
@@ -214,6 +258,10 @@
     <div class="drawer-item" onclick="location.href='schedule.html'"><span class="di-icon">📅</span> 스케줄</div>
     <div class="drawer-item" onclick="location.href='cost.html'"><span class="di-icon">🧮</span> 원가계산</div>
     <div class="drawer-item active"><span class="di-icon">📖</span> 레시피</div>
+  </div>
+  <div class="theme-toggle-row" id="theme-toggle-row">
+    <span class="theme-toggle-label" id="theme-icon-label">🌙 다크 모드</span>
+    <span class="theme-toggle-val" id="theme-val">자동</span>
   </div>
   <button class="drawer-logout" id="logout-btn-drawer">로그아웃</button>
 </div>
@@ -339,9 +387,11 @@ const _fbApp = initializeApp({
 const db = getFirestore(_fbApp);
 const _auth = getAuth(_fbApp);
 let _currentUser = null;
+let _pinLoaded = false;
 onAuthStateChanged(_auth, user => {
   if (!user) { location.href = 'index.html'; return; }
   _currentUser = user;
+  if (!_pinLoaded) { _pinLoaded = true; loadPIN(); }
 });
 
 let pinBuf = '';
@@ -440,8 +490,6 @@ document.getElementById('pin-change-btn').addEventListener('click',()=>{
   document.getElementById('pin-change-btn').style.display='none';
 });
 window.lockApp=()=>{sessionStorage.removeItem('recipe_auth');location.reload();};
-loadPIN();
-
   // Drawer
   const _drawerEl = document.getElementById('drawer');
   const _drawerOvEl = document.getElementById('drawer-overlay');
@@ -995,5 +1043,28 @@ document.getElementById('delete-btn').addEventListener('click',async()=>{
       });
     }
   </script>
+<script>
+(function(){
+  const row = document.getElementById('theme-toggle-row');
+  if(!row) return;
+  const valEl = document.getElementById('theme-val');
+  const iconEl = document.getElementById('theme-icon-label');
+  const update = () => {
+    const t = localStorage.getItem('app_theme') || 'auto';
+    const map = {auto:'자동', light:'라이트', dark:'다크'};
+    const icons = {auto:'🌓 테마', light:'☀️ 라이트', dark:'🌙 다크'};
+    valEl.textContent = map[t];
+    iconEl.textContent = icons[t];
+  };
+  update();
+  row.addEventListener('click', () => {
+    const cur = localStorage.getItem('app_theme') || 'auto';
+    const next = cur==='auto' ? 'light' : cur==='light' ? 'dark' : 'auto';
+    localStorage.setItem('app_theme', next);
+    document.body.setAttribute('data-theme', next);
+    update();
+  });
+})();
+</script>
 </body>
 </html>

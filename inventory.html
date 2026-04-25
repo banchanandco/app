@@ -13,6 +13,39 @@
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
   <style>
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    /* ── DARK MODE ─────────────────────────────────────── */
+    @media (prefers-color-scheme: dark) {
+      body[data-theme="auto"], body[data-theme="dark"] {
+        --bg:#1a1916;
+        --surface:#252320;
+        --border:#3d3933;
+        --subtle:#2d2a26;
+        --muted:#8a857d;
+        --body:#e0dcd4;
+        --heading:#f5f1ea;
+        --accent:#9caf88;
+        --accent-dark:#b8c8a4;
+        --accent-bg:#2a3328;
+        --accent-light:#3d4a39;
+        --urgent-bg:#3a1e1e;
+        --warn-bg:#3a2a1a;
+      }
+    }
+    body[data-theme="dark"] {
+      --bg:#1a1916;
+      --surface:#252320;
+      --border:#3d3933;
+      --subtle:#2d2a26;
+      --muted:#8a857d;
+      --body:#e0dcd4;
+      --heading:#f5f1ea;
+      --accent:#9caf88;
+      --accent-dark:#b8c8a4;
+      --accent-bg:#2a3328;
+      --accent-light:#3d4a39;
+      --urgent-bg:#3a1e1e;
+      --warn-bg:#3a2a1a;
+    }
     :root{
       --accent:#9caf88;--accent-dark:#7a9068;--accent-bg:#f0f5ec;--accent-light:#c8d9bc;
       --bg:#f5f4f0;--surface:#fff;--border:#dedad3;--subtle:#eceae5;
@@ -178,9 +211,30 @@
       .drawer { position: fixed; }
       .drawer-overlay { position: fixed; }
     }
+
+    .theme-toggle-row{margin:0 16px 12px;padding:10px 14px;border:1.5px solid var(--border);border-radius:10px;background:var(--surface);display:flex;align-items:center;justify-content:space-between;cursor:pointer}
+    .theme-toggle-row:active{opacity:0.7}
+    .theme-toggle-label{font-size:0.85rem;color:var(--body);font-weight:500;display:flex;align-items:center;gap:8px}
+    .theme-toggle-val{font-size:0.78rem;color:var(--muted)}
+
+    /* FAVORITES & QUICK OUT */
+    .star-btn{background:none;border:none;font-size:1.05rem;cursor:pointer;padding:0;color:#cbc8c0;transition:transform .15s;flex-shrink:0;line-height:1}
+    .star-btn.active{color:#f4c430}
+    .star-btn:active{transform:scale(0.85)}
+    .quick-out-row{display:flex;gap:5px;margin-top:5px}
+    .quick-out-btn{padding:3px 9px;border:1px solid var(--border);border-radius:6px;background:var(--surface);font-family:'DM Mono',monospace;font-size:0.7rem;color:var(--accent-dark);cursor:pointer;font-weight:600}
+    .quick-out-btn:active{background:var(--accent-bg)}
+    .fav-section{order:-1}
+    .item-row .star-btn{margin-right:2px}
   </style>
 </head>
 <body>
+<script>
+(function(){
+  const saved = localStorage.getItem('app_theme') || 'auto';
+  document.body.setAttribute('data-theme', saved);
+})();
+</script>
 
 <div class="drawer-overlay" id="drawer-overlay"></div>
 <div class="drawer" id="drawer">
@@ -198,6 +252,10 @@
     <div class="drawer-item" onclick="location.href='schedule.html'"><span class="di-icon">📅</span> 스케줄</div>
     <div class="drawer-item" onclick="location.href='cost.html'"><span class="di-icon">🧮</span> 원가계산</div>
     <div class="drawer-item" onclick="location.href='recipe.html'"><span class="di-icon">📖</span> 레시피</div>
+  </div>
+  <div class="theme-toggle-row" id="theme-toggle-row">
+    <span class="theme-toggle-label" id="theme-icon-label">🌙 다크 모드</span>
+    <span class="theme-toggle-val" id="theme-val">자동</span>
   </div>
   <button class="drawer-logout" id="logout-btn">로그아웃</button>
 </div>
@@ -601,6 +659,67 @@ function renderInbound(){
 function renderStock(){
   const view=document.getElementById('tab-stock');view.innerHTML='';
   let hasAny=false;
+
+  // ── Favorites section first ──
+  const favItems = [];
+  SECTIONS.forEach(sec=>{
+    cache[sec.id].forEach(item=>{
+      if(isFav(sec.id, item.name)) favItems.push({...item, secId:sec.id, secLabel:sec.label, secIcon:sec.icon});
+    });
+  });
+  if(favItems.length){
+    hasAny=true;
+    const favCard=document.createElement('div');favCard.className='sec-section';
+    const favHdr=document.createElement('div');favHdr.className='section-hdr open';
+    favHdr.innerHTML=`<div class="section-title-row"><div class="section-icon">⭐</div><span class="section-name">즐겨찾기</span><span class="section-badge">${favItems.length}</span></div><span class="chevron open">▾</span>`;
+    favHdr.addEventListener('click',()=>{const lw=favCard.querySelector('.item-list-wrap');lw.classList.toggle('hidden');favHdr.querySelector('.chevron').classList.toggle('open');favHdr.classList.toggle('open');});
+    favCard.appendChild(favHdr);
+    const favList=document.createElement('div');favList.className='item-list-wrap';
+    favItems.forEach(item=>{
+      const sec={id:item.secId,label:item.secLabel,icon:item.secIcon};
+      const row=document.createElement('div');row.className='item-row';
+      const remaining=(item.remaining!==undefined&&item.remaining!==null)?item.remaining:item.qty;
+      const conv2=conversions[sec.id]&&conversions[sec.id][item.name];
+      let qtyDisplay=`${remaining} ${item.unit}`;
+      if(conv2&&conv2.ratio&&remaining!==null){
+        const secUnits=(remaining/conv2.ratio).toFixed(1);
+        qtyDisplay=`${secUnits} ${conv2.outUnit}`;
+      }
+      row.innerHTML=`
+        <button class="star-btn active" title="즐겨찾기">★</button>
+        <div class="item-info">
+          <div class="item-name">${item.name} <span style="font-size:0.7rem;color:var(--muted);font-weight:400">${item.secIcon} ${item.secLabel}</span></div>
+          <div class="quick-out-row">
+            <button class="quick-out-btn" data-q="1">−1</button>
+            <button class="quick-out-btn" data-q="5">−5</button>
+            <button class="quick-out-btn" data-q="10">−10</button>
+          </div>
+        </div>
+        <div style="text-align:right;flex-shrink:0">
+          <div class="item-qty">${qtyDisplay}</div>
+        </div>
+      `;
+      row.querySelector('.star-btn').addEventListener('click',(e)=>{
+        e.stopPropagation();
+        toggleFav(sec.id, item.name);
+        renderStock();
+      });
+      row.querySelectorAll('.quick-out-btn').forEach(btn=>{
+        btn.addEventListener('click', async (e)=>{
+          e.stopPropagation();
+          const q = parseFloat(btn.dataset.q);
+          const cur = (item.remaining!==undefined&&item.remaining!==null)?item.remaining:item.qty;
+          const newR = Math.max(0, cur - q);
+          await updateDoc(doc(db,`inv_${sec.id}`,item.id),{remaining:newR});
+          showToast(`${item.name} −${q} ${item.unit}`);
+        });
+      });
+      favList.appendChild(row);
+    });
+    favCard.appendChild(favList);
+    view.appendChild(favCard);
+  }
+
   SECTIONS.forEach(sec=>{
     const items=[...cache[sec.id]].sort((a,b)=>a.name.localeCompare(b.name,'ko'));
     if(!items.length)return;
@@ -624,10 +743,17 @@ function renderStock(){
         qtyDisplay=`${secUnits} ${conv2.outUnit}`;
         if(conv2.eachVol&&conv2.eachUnit) eachInfo=`${conv2.eachVol}${conv2.eachUnit} each`;
       }
+      const isFavorite = isFav(sec.id, item.name);
       row.innerHTML=`
+        <button class="star-btn ${isFavorite?'active':''}" title="즐겨찾기">${isFavorite?'★':'☆'}</button>
         <div class="item-info">
           <div class="item-name">${item.name}</div>
           <div class="item-meta">${fmtDate(item.createdAt)}${item.addedBy?' · '+item.addedBy:''}${inInfo?' · '+inInfo:''}${eachInfo?' · '+eachInfo:''}</div>
+          <div class="quick-out-row">
+            <button class="quick-out-btn" data-q="1">−1</button>
+            <button class="quick-out-btn" data-q="5">−5</button>
+            <button class="quick-out-btn" data-q="10">−10</button>
+          </div>
         </div>
         <div style="text-align:right;flex-shrink:0">
           <div class="item-qty">${qtyDisplay}</div>
@@ -636,6 +762,21 @@ function renderStock(){
         <button class="stock-edit">✏️</button>
         <button class="del-btn">✕</button>
       `;
+      row.querySelector('.star-btn').addEventListener('click',(e)=>{
+        e.stopPropagation();
+        toggleFav(sec.id, item.name);
+        renderStock();
+      });
+      row.querySelectorAll('.quick-out-btn').forEach(btn=>{
+        btn.addEventListener('click', async (e)=>{
+          e.stopPropagation();
+          const q = parseFloat(btn.dataset.q);
+          const cur = (item.remaining!==undefined&&item.remaining!==null)?item.remaining:item.qty;
+          const newR = Math.max(0, cur - q);
+          await updateDoc(doc(db,`inv_${sec.id}`,item.id),{remaining:newR});
+          showToast(`${item.name} −${q} ${item.unit}`);
+        });
+      });
       row.querySelector('.stock-edit').addEventListener('click',()=>openEdit(sec.id,item));
       row.querySelector('.del-btn').addEventListener('click',()=>{row.style.opacity='0';row.style.transition='opacity .2s';setTimeout(()=>deleteDoc(doc(db,`inv_${sec.id}`,item.id)),200);});
       list.appendChild(row);
@@ -842,5 +983,28 @@ document.getElementById('manage-add-btn').addEventListener('click',async()=>{
 document.getElementById('manage-input').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('manage-add-btn').click();});
 </script>
 <script>if('serviceWorker' in navigator){navigator.serviceWorker.register('/app/sw.js').catch(()=>{});}</script>
+<script>
+(function(){
+  const row = document.getElementById('theme-toggle-row');
+  if(!row) return;
+  const valEl = document.getElementById('theme-val');
+  const iconEl = document.getElementById('theme-icon-label');
+  const update = () => {
+    const t = localStorage.getItem('app_theme') || 'auto';
+    const map = {auto:'자동', light:'라이트', dark:'다크'};
+    const icons = {auto:'🌓 테마', light:'☀️ 라이트', dark:'🌙 다크'};
+    valEl.textContent = map[t];
+    iconEl.textContent = icons[t];
+  };
+  update();
+  row.addEventListener('click', () => {
+    const cur = localStorage.getItem('app_theme') || 'auto';
+    const next = cur==='auto' ? 'light' : cur==='light' ? 'dark' : 'auto';
+    localStorage.setItem('app_theme', next);
+    document.body.setAttribute('data-theme', next);
+    update();
+  });
+})();
+</script>
 </body>
 </html>
