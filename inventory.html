@@ -357,7 +357,7 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { getFirestore, collection, doc, onSnapshot, addDoc, deleteDoc, updateDoc, setDoc, getDoc, query, orderBy }
+import { getFirestore, collection, doc, onSnapshot, addDoc, deleteDoc, updateDoc, setDoc, getDoc, getDocs, query, orderBy, where }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const fbApp = initializeApp({
@@ -427,6 +427,65 @@ onAuthStateChanged(auth, user=>{
   document.getElementById('drawer-email').textContent=user.email||'';
   initFirestore();
 });
+
+// ── 원가계산 연동 ──────────────────────────────────────
+// 입고 가격 정보를 cost.html이 이해하는 단위로 변환해서 cost_ingredients에 저장/업데이트
+// rawQty: 입력한 수량 (입고 단위 기준, 예: 1)
+// rawPrice: 입력한 가격
+// priceUnit: 가격 입력 단위 ('box', '개' 등)
+// conv: 변환 정보 객체 또는 null
+// cost.html이 인식하는 단위
+const COST_UNITS=['cup','tbsp','tsp','Kg','g','l','ml','lb','oz','개'];
+async function syncToCost(name, rawQty, rawPrice, priceUnit, conv){
+  if(!rawPrice||rawPrice<=0||!rawQty||rawQty<=0)return;
+  // priceUnit 기준 1단위당 가격 계산
+  // 예) 1 box에 $50이면 → boxPerPrice = 1, totalPrice = 50
+  // cost.html에 저장할 amount/unit/price 계산
+  let amount, unit, price;
+  // priceUnit이 변환의 inUnit (예: box)인 경우
+  if(conv && conv.inUnit && priceUnit===conv.inUnit){
+    // 1 box = ratio 개, 1 개 = eachVol eachUnit
+    if(conv.eachVol && conv.eachUnit && COST_UNITS.includes(conv.eachUnit)){
+      // 부피/무게 단위로 풀기
+      amount = conv.ratio * conv.eachVol;
+      unit = conv.eachUnit;
+    } else if(COST_UNITS.includes(conv.outUnit||'')){
+      // outUnit이 인식 가능하면 그걸로 (보통 '개')
+      amount = conv.ratio;
+      unit = conv.outUnit;
+    } else {
+      // 둘 다 안 되면 '개'로 폴백
+      amount = conv.ratio;
+      unit = '개';
+    }
+    price = parseFloat(rawPrice); // 1 box 가격
+  } else {
+    // priceUnit이 '개' 또는 변환 없음
+    if(priceUnit==='개' || !COST_UNITS.includes(priceUnit)){
+      amount = 1;
+      unit = '개';
+    } else {
+      amount = 1;
+      unit = priceUnit;
+    }
+    price = parseFloat(rawPrice);
+  }
+  if(!amount||!unit||!price)return;
+  // 같은 이름 기존 항목 있으면 업데이트, 없으면 추가
+  try {
+    const snap = await getDocs(query(collection(db,'cost_ingredients'),where('name','==',name)));
+    if(!snap.empty){
+      const existingDoc = snap.docs[0];
+      await updateDoc(doc(db,'cost_ingredients',existingDoc.id),{name,price,amount,unit,density:existingDoc.data().density||1});
+      console.log('[원가] 업데이트', name, {price,amount,unit});
+    } else {
+      await addDoc(collection(db,'cost_ingredients'),{name,price,amount,unit,density:1,createdAt:Date.now()});
+      console.log('[원가] 추가', name, {price,amount,unit});
+    }
+  } catch(e){
+    console.error('[원가] 동기화 실패', name, e);
+  }
+}
 
 // ── Drawer ────────────────────────────────────────────
 document.getElementById('hamburger-btn').addEventListener('click',()=>{document.getElementById('drawer').classList.add('open');document.getElementById('drawer-overlay').classList.add('open');});
@@ -584,6 +643,31 @@ function renderInbound(){
           r1.appendChild(qInp);r1.appendChild(unitSpan);r1.appendChild(hint);
           block.appendChild(r1);
 
+          // 가격 입력 (선택사항, 원가계산 자동 연동)
+          const priceRow=document.createElement('div');priceRow.className='sel-row';
+          priceRow.innerHTML=`<span class="sel-label">가격</span>`;
+          const priceInp=document.createElement('input');
+          priceInp.className='sel-num';priceInp.type='number';priceInp.placeholder='선택사항';
+          priceInp.min='0';priceInp.step='0.01';
+          priceInp.value=selected[sec.id][name].price||'';
+          const priceCurr=document.createElement('span');priceCurr.className='sel-label';priceCurr.textContent='$ /';
+          priceCurr.style.cssText='padding:0 4px;color:var(--muted)';
+          const priceUnitSel=document.createElement('select');priceUnitSel.className='sel-sel';
+          [conv.inUnit,'개'].forEach(u=>{
+            if(u && !priceUnitSel.querySelector(`option[value="${u}"]`)){
+              const o=document.createElement('option');o.value=u;o.textContent=u;priceUnitSel.appendChild(o);
+            }
+          });
+          priceUnitSel.value=selected[sec.id][name].priceUnit||conv.inUnit;
+          priceInp.addEventListener('input',()=>{selected[sec.id][name].price=priceInp.value;});
+          priceUnitSel.addEventListener('change',()=>{selected[sec.id][name].priceUnit=priceUnitSel.value;});
+          // 첫 렌더 시 기본값 selected에 반영
+          if(!selected[sec.id][name].priceUnit) selected[sec.id][name].priceUnit=conv.inUnit;
+          priceRow.appendChild(priceInp);
+          priceRow.appendChild(priceCurr);
+          priceRow.appendChild(priceUnitSel);
+          block.appendChild(priceRow);
+
           // 변환 수정 링크
           const editConvBtn=document.createElement('div');
           editConvBtn.className='conv-setup';
@@ -610,6 +694,28 @@ function renderInbound(){
           uSel.addEventListener('change',()=>selected[sec.id][name].inUnit=uSel.value);
           r1.appendChild(qInp);r1.appendChild(uSel);
           block.appendChild(r1);
+
+          // 가격 입력 (선택사항, 원가계산 자동 연동) - 변환 없는 경우 box/개만
+          const priceRow=document.createElement('div');priceRow.className='sel-row';
+          priceRow.innerHTML=`<span class="sel-label">가격</span>`;
+          const priceInp=document.createElement('input');
+          priceInp.className='sel-num';priceInp.type='number';priceInp.placeholder='선택사항';
+          priceInp.min='0';priceInp.step='0.01';
+          priceInp.value=selected[sec.id][name].price||'';
+          const priceCurr=document.createElement('span');priceCurr.className='sel-label';priceCurr.textContent='$ /';
+          priceCurr.style.cssText='padding:0 4px;color:var(--muted)';
+          const priceUnitSel=document.createElement('select');priceUnitSel.className='sel-sel';
+          ['box','개'].forEach(u=>{
+            const o=document.createElement('option');o.value=u;o.textContent=u;priceUnitSel.appendChild(o);
+          });
+          priceUnitSel.value=selected[sec.id][name].priceUnit||'box';
+          priceInp.addEventListener('input',()=>{selected[sec.id][name].price=priceInp.value;});
+          priceUnitSel.addEventListener('change',()=>{selected[sec.id][name].priceUnit=priceUnitSel.value;});
+          if(!selected[sec.id][name].priceUnit) selected[sec.id][name].priceUnit='box';
+          priceRow.appendChild(priceInp);
+          priceRow.appendChild(priceCurr);
+          priceRow.appendChild(priceUnitSel);
+          block.appendChild(priceRow);
 
           const setupBtn=document.createElement('div');
           setupBtn.className='conv-setup';
@@ -674,6 +780,13 @@ function renderInbound(){
             console.log('[입고] ADD 성공', name, '새 docId:', ref.id);
           }
           saved++;
+
+          // 가격 정보 있으면 원가계산 컬렉션에 자동 연동
+          const rawPrice=parseFloat(val.price);
+          if(rawPrice>0){
+            const priceUnit=val.priceUnit || (conv?conv.inUnit:'개');
+            await syncToCost(name, rawQty, rawPrice, priceUnit, conv);
+          }
         } catch(e) {
           lastError=e;
           console.error('[입고] 실패', name, e.code, e.message, e);
