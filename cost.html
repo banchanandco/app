@@ -377,6 +377,10 @@ function fmtSmart(amount, unit) {
   let newPinTemp = '';
 
   // ── PIN Firebase load ────────────────────────────────
+  // 누락된 DOM 요소 안전 처리 헬퍼 (pin-mode-label, pin-setup-hint, pin-change-btn은 HTML에 없음)
+  function _setText(id, text){ const el = document.getElementById(id); if(el) el.textContent = text; }
+  function _setDisplay(id, val){ const el = document.getElementById(id); if(el) el.style.display = val; }
+
   async function loadPIN() {
     try {
       const snap = await getDoc(doc(_db,'app_config','pin'));
@@ -398,13 +402,13 @@ function fmtSmart(amount, unit) {
     if (!currentPIN) {
       // 처음 설정
       pinMode = 'setup';
-      document.getElementById('pin-mode-label').textContent = 'PIN을 새로 설정하세요';
-      document.getElementById('pin-setup-hint').style.display = 'block';
-      document.getElementById('pin-setup-hint').textContent = '4자리 PIN을 입력하면 원가계산과 레시피에 적용돼요';
+      _setText('pin-mode-label', 'PIN을 새로 설정하세요');
+      _setDisplay('pin-setup-hint', 'block');
+      _setText('pin-setup-hint', '4자리 PIN을 입력하면 원가계산과 레시피에 적용돼요');
     } else {
       pinMode = 'enter';
-      document.getElementById('pin-mode-label').textContent = 'PIN을 입력하세요';
-      document.getElementById('pin-change-btn').style.display = 'block';
+      _setText('pin-mode-label', 'PIN을 입력하세요');
+      _setDisplay('pin-change-btn', 'block');
     }
   }
 
@@ -453,23 +457,23 @@ function fmtSmart(amount, unit) {
         } else if (pinMode === 'setup') {
           newPinTemp = entered;
           pinMode = 'change_confirm';
-          document.getElementById('pin-mode-label').textContent = '한 번 더 입력하세요';
-          document.getElementById('pin-setup-hint').textContent = 'PIN을 다시 입력해 확인해주세요';
+          _setText('pin-mode-label', '한 번 더 입력하세요');
+          _setText('pin-setup-hint', 'PIN을 다시 입력해 확인해주세요');
 
         } else if (pinMode === 'change_old') {
           if (entered === currentPIN) {
             pinMode = 'change_new';
-            document.getElementById('pin-mode-label').textContent = '새 PIN을 입력하세요';
+            _setText('pin-mode-label', '새 PIN을 입력하세요');
           } else {
             showError('기존 PIN이 틀렸어요');
             pinMode = 'enter';
-            document.getElementById('pin-mode-label').textContent = 'PIN을 입력하세요';
+            _setText('pin-mode-label', 'PIN을 입력하세요');
           }
 
         } else if (pinMode === 'change_new') {
           newPinTemp = entered;
           pinMode = 'change_confirm';
-          document.getElementById('pin-mode-label').textContent = '새 PIN을 한 번 더 입력하세요';
+          _setText('pin-mode-label', '새 PIN을 한 번 더 입력하세요');
 
         } else if (pinMode === 'change_confirm') {
           if (entered === newPinTemp) {
@@ -479,21 +483,22 @@ function fmtSmart(amount, unit) {
           } else {
             showError('PIN이 일치하지 않아요. 다시 시도하세요');
             pinMode = currentPIN ? 'change_new' : 'setup';
-            document.getElementById('pin-mode-label').textContent = currentPIN ? '새 PIN을 입력하세요' : 'PIN을 새로 설정하세요';
+            _setText('pin-mode-label', currentPIN ? '새 PIN을 입력하세요' : 'PIN을 새로 설정하세요');
           }
         }
       }
     });
   });
 
-  // PIN 변경 버튼
-  document.getElementById('pin-change-btn').addEventListener('click', () => {
+  // PIN 변경 버튼 (HTML에 버튼이 없을 수도 있으므로 안전하게 처리)
+  const _pinChangeBtn = document.getElementById('pin-change-btn');
+  if(_pinChangeBtn) _pinChangeBtn.addEventListener('click', () => {
     pinMode = 'change_old';
     pinBuf = ''; updateDots();
-    document.getElementById('pin-mode-label').textContent = '기존 PIN을 입력하세요';
-    document.getElementById('pin-setup-hint').style.display = 'block';
-    document.getElementById('pin-setup-hint').textContent = '기존 PIN 확인 후 새 PIN을 설정합니다';
-    document.getElementById('pin-change-btn').style.display = 'none';
+    _setText('pin-mode-label', '기존 PIN을 입력하세요');
+    _setDisplay('pin-setup-hint', 'block');
+    _setText('pin-setup-hint', '기존 PIN 확인 후 새 PIN을 설정합니다');
+    _pinChangeBtn.style.display = 'none';
   });
 
   window.lockApp = () => { sessionStorage.removeItem('cost_auth'); location.reload(); };
