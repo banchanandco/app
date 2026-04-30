@@ -535,6 +535,77 @@ function toMl(amount, unit){
   return amount*(map[unit]||null);
 }
 
+// 인분 변경 시 사용량을 자연스러운 단위로 표시
+// - 같은 단위 계열 안에서만 업그레이드 (tsp/tbsp/cup, ml/l, g/Kg, oz/lb)
+// - tbsp 8개 이상 → cup 시도. 깔끔하면 단일 표기, 애매하면 "1 cup + 3 tbsp" 식 혼합 표기
+const _UNIT_FAMILIES = {
+  vol_imp: {units:['tsp','tbsp','cup'], toBase:{tsp:1,tbsp:3,cup:48}, base:'tsp'},
+  vol_met: {units:['ml','l'],            toBase:{ml:1,l:1000},          base:'ml'},
+  wt_imp:  {units:['oz','lb'],           toBase:{oz:1,lb:16},           base:'oz'},
+  wt_met:  {units:['g','Kg'],            toBase:{g:1,Kg:1000},          base:'g'},
+};
+function _findFamily(unit){for(const k in _UNIT_FAMILIES)if(_UNIT_FAMILIES[k].units.includes(unit))return _UNIT_FAMILIES[k];return null;}
+function _isClean(n){const f=n-Math.floor(n);return f<0.001||Math.abs(f-0.25)<0.001||Math.abs(f-0.5)<0.001||Math.abs(f-0.75)<0.001;}
+function _fmtNum(n){
+  if(Math.abs(n-Math.round(n))<0.001) return String(Math.round(n));
+  const f=n-Math.floor(n), w=Math.floor(n);
+  const fs=Math.abs(f-0.25)<0.01?'¼':Math.abs(f-0.5)<0.01?'½':Math.abs(f-0.75)<0.01?'¾':null;
+  if(fs) return w===0?fs:w+fs;
+  return n.toFixed(2).replace(/0+$/,'').replace(/\.$/,'');
+}
+function _roundHalf(n){return Math.round(n*2)/2;}
+function displayAmount(amt, unit){
+  if(!isFinite(amt)||amt<=0) return amt+' '+(unit||'');
+  const fam = _findFamily(unit);
+  if(!fam) return _fmtNum(amt)+(unit?' '+unit:''); // 모르는 단위 (개, 줄기 등) 그대로
+  const base = amt * fam.toBase[unit];
+  // 부피 imperial 특수 (tsp/tbsp/cup)
+  if(fam.base === 'tsp'){
+    // cup 임계: 24 tsp = 8 tbsp 이상이면 cup 시도
+    if(base >= 24){
+      const cups = base/48;
+      if(_isClean(cups)) return _fmtNum(cups)+' cup';
+      const wc = Math.floor(cups);
+      if(wc < 1){
+        // cup 정수가 0이면 cup 표기 포기, tbsp으로
+        return _fmtNum(_roundHalf(base/3))+' tbsp';
+      }
+      const remTsp = base - wc*48;
+      if(remTsp < 1) return wc+' cup';
+      const remTbsp = _roundHalf(remTsp/3);
+      if(remTbsp === 0) return wc+' cup';
+      if(remTbsp >= 16) return _fmtNum(cups)+' cup'; // 안전 폴백
+      return wc+' cup + '+_fmtNum(remTbsp)+' tbsp';
+    }
+    if(base >= 3){
+      const tbs = base/3;
+      if(_isClean(tbs)) return _fmtNum(tbs)+' tbsp';
+      const wt = Math.floor(tbs);
+      if(wt < 1) return _fmtNum(_roundHalf(base))+' tsp';
+      const remTsp = base - wt*3;
+      if(remTsp < 0.5) return wt+' tbsp';
+      const remTspR = _roundHalf(remTsp);
+      if(remTspR === 0) return wt+' tbsp';
+      return wt+' tbsp + '+_fmtNum(remTspR)+' tsp';
+    }
+    return _fmtNum(_roundHalf(base))+' tsp';
+  }
+  // 일반 2단계 (ml/l, g/Kg, oz/lb)
+  const large = fam.units[fam.units.length-1];
+  const small = fam.units[0];
+  const factor = fam.toBase[large];
+  const largeAmt = base/factor;
+  if(largeAmt >= 1 && _isClean(largeAmt)) return _fmtNum(largeAmt)+' '+large;
+  if(largeAmt >= 1){
+    const wl = Math.floor(largeAmt);
+    const remSmall = base - wl*factor;
+    if(remSmall < factor*0.005) return wl+' '+large;
+    if(_isClean(remSmall) && remSmall === Math.round(remSmall)) return wl+' '+large+' + '+_fmtNum(remSmall)+' '+small;
+    return _fmtNum(largeAmt)+' '+large;
+  }
+  return _fmtNum(Math.round(base))+' '+small;
+}
+
 // Get price per gram from costIngredients
 function getPricePerGram(ingName){
   const found = costIngredients.find(c=>c.name.trim().toLowerCase()===ingName.trim().toLowerCase());
@@ -837,13 +908,13 @@ function renderDetailBody(r, displayServing){
 
     r.ingredients.forEach(ing=>{
       const scaledAmt = parseFloat(ing.amount)*ratio;
-      const amtDisplay = scaledAmt ? (Number.isInteger(scaledAmt)?scaledAmt:scaledAmt.toFixed(2)) : ing.amount;
+      const amtDisplay = scaledAmt ? displayAmount(scaledAmt, ing.unit) : `${ing.amount} ${ing.unit||''}`;
       const cost = calcIngCost({...ing, amount: scaledAmt||ing.amount});
       const costStr = fmtCost(cost);
       const row=document.createElement('div');row.className='ing-table-row';
       row.innerHTML=`
         <span class="ing-col-name">${ing.name}</span>
-        <span class="ing-col-amt">${amtDisplay} ${ing.unit}</span>
+        <span class="ing-col-amt">${amtDisplay}</span>
         <span class="ing-col-cost ${costStr?'':'no-data'}">${costStr||'—'}</span>
       `;
       card.appendChild(row);
@@ -905,19 +976,16 @@ function renderDetailBody(r, displayServing){
   } else {
     deductions.forEach(d=>{
       const row=document.createElement('div');row.className='stock-preview-row';
-      if(d.invItem){
+      if(d.unitMismatch){
+        // 단위 변환 불가 — 재고 매칭은 됐지만 차감 못함
+        row.innerHTML=`<span class="stock-preview-name">${d.name}</span><span class="stock-preview-val no-match">단위 변환 불가 (${d.unit} → ${d.invItem.unit})</span>`;
+      } else if(d.invItem){
         const curRemaining=(d.invItem.remaining!==undefined&&d.invItem.remaining!==null)?d.invItem.remaining:d.invItem.qty;
         const afterRemaining=Math.max(0,curRemaining-d.deductGrams);
-        // Convert back to secondary unit if conversion exists
-        const conv=d.conv;
-        let curDisplay,afterDisplay;
-        if(conv&&conv.ratio){
-          curDisplay=`${(curRemaining/conv.ratio).toFixed(1)} ${conv.outUnit}`;
-          afterDisplay=`${(afterRemaining/conv.ratio).toFixed(1)} ${conv.outUnit}`;
-        } else {
-          curDisplay=`${curRemaining} ${d.invItem.unit}`;
-          afterDisplay=`${afterRemaining} ${d.invItem.unit}`;
-        }
+        // 재고는 이미 stockUnit (보통 '개')으로 저장돼 있음 → 그대로 표시
+        const fmt=v=>Number.isInteger(v)?v:parseFloat(v.toFixed(2));
+        const curDisplay=`${fmt(curRemaining)} ${d.invItem.unit}`;
+        const afterDisplay=`${fmt(afterRemaining)} ${d.invItem.unit}`;
         row.innerHTML=`<span class="stock-preview-name">${d.name}</span><span class="stock-preview-val">${curDisplay} → ${afterDisplay}</span>`;
       } else {
         row.innerHTML=`<span class="stock-preview-name">${d.name}</span><span class="stock-preview-val no-match">재고 없음</span>`;
@@ -932,13 +1000,17 @@ function renderDetailBody(r, displayServing){
   applyBtn.className='apply-stock-btn';
   applyBtn.innerHTML='📦 재고에 반영하기';
   applyBtn.addEventListener('click',async()=>{
-    const matched=deductions.filter(d=>d.invItem);
-    if(!matched.length){showToast('재고에 매칭된 재료가 없어요');return;}
+    const matched=deductions.filter(d=>d.invItem && !d.unitMismatch);
+    const skipped=deductions.filter(d=>d.unitMismatch).length;
+    if(!matched.length){
+      if(skipped>0) showToast(`단위 변환 불가로 차감 못함 (${skipped}개)`);
+      else showToast('재고에 매칭된 재료가 없어요');
+      return;
+    }
     applyBtn.disabled=true;applyBtn.textContent='반영 중...';
     for(const d of matched){
       const curR=(d.invItem.remaining!==undefined&&d.invItem.remaining!==null)?d.invItem.remaining:d.invItem.qty;
       const newR=Math.max(0,curR-d.deductGrams);
-      // Find which section this item is in
       for(const sec of INV_SECTIONS){
         const found=invCache[sec.id].find(i=>i.id===d.invItem.id);
         if(found){
@@ -947,7 +1019,10 @@ function renderDetailBody(r, displayServing){
         }
       }
     }
-    showToast(`${matched.length}개 재료 재고 반영됨 ✓`);
+    const msg = skipped>0
+      ? `${matched.length}개 반영, ${skipped}개 단위 변환 불가로 건너뜀`
+      : `${matched.length}개 재료 재고 반영됨 ✓`;
+    showToast(msg);
     applyBtn.disabled=false;applyBtn.innerHTML='📦 재고에 반영하기';
     renderDetailBody(r, displayServing);
   });
@@ -955,61 +1030,104 @@ function renderDetailBody(r, displayServing){
 }
 
 // ── Build deductions ──────────────────────────────────
-// Convert recipe ingredient amount to inventory base unit (grams/ml)
+// Convert recipe ingredient amount to inventory unit considering conversion (each volume)
 function buildDeductions(ingredients, displayServing, totalServing){
   const ratio = displayServing / totalServing;
   return ingredients.map(ing=>{
     const amt = parseFloat(ing.amount) * ratio;
     if(!amt) return null;
-    // Convert recipe unit → grams or ml
-    const grams = convertToBaseUnit(amt, ing.unit);
-    if(grams === null) return {name:ing.name,deductGrams:amt,unit:ing.unit,invItem:null,conv:null};
+    // 레시피 단위 → 베이스 단위 (g 또는 ml)
+    const recipeBase = convertToBaseUnit(amt, ing.unit);
 
     // Find matching inv item across all sections
-    let matchedItem=null, matchedConv=null, matchedSec=null;
+    let matchedItem=null, matchedConv=null;
     for(const sec of INV_SECTIONS){
       const item=invCache[sec.id].find(i=>i.name.trim().toLowerCase()===ing.name.trim().toLowerCase());
       if(item){
         matchedItem=item;
         matchedConv=(invConversions[sec.id]&&invConversions[sec.id][item.name])||null;
-        matchedSec=sec;
         break;
       }
     }
 
-    if(!matchedItem) return {name:ing.name,deductGrams:grams,unit:ing.unit,invItem:null,conv:matchedConv};
+    if(!matchedItem){
+      return {name:ing.name,deductGrams:recipeBase!==null?recipeBase:amt,unit:ing.unit,invItem:null,conv:null};
+    }
 
-    // Convert recipe amount to inv base unit
-    // inv stores in stockUnit (e.g. grams if Kg, ml if l)
-    const invUnit=matchedItem.unit;
-    const deductInInvUnit = convertToSameUnit(grams, ing.unit, invUnit);
+    const invUnit = matchedItem.unit;
+    let deductInInvUnit = null;
 
-    return {name:ing.name,deductGrams:deductInInvUnit!==null?deductInInvUnit:grams,unit:ing.unit,invItem:matchedItem,conv:matchedConv};
+    // CASE A: 레시피와 재고가 같은 종류의 단위 (둘 다 무게 또는 둘 다 부피)
+    if(recipeBase!==null){
+      const direct = convertSameKind(amt, ing.unit, invUnit);
+      if(direct!==null) deductInInvUnit = direct;
+    }
+
+    // CASE B: 재고가 '개' 같은 카운트 단위인데 변환정보에 each 부피/무게 있음
+    // 예: 재고 '간장 10개', conv.eachVol=1000, conv.eachUnit='ml', 레시피 4 tbsp
+    // → 4 tbsp = 60 ml, 1개 = 1000 ml, 차감 = 60/1000 = 0.06개
+    if(deductInInvUnit===null && matchedConv && matchedConv.eachVol && matchedConv.eachUnit && recipeBase!==null){
+      // each 단위의 베이스값
+      const eachBase = convertToBaseUnit(matchedConv.eachVol, matchedConv.eachUnit);
+      if(eachBase!==null && eachBase>0){
+        // recipeBase와 eachBase가 같은 종류(둘 다 ml 또는 둘 다 g)인지 확인
+        const recipeKind = unitKind(ing.unit);
+        const eachKind = unitKind(matchedConv.eachUnit);
+        if(recipeKind && recipeKind===eachKind){
+          deductInInvUnit = recipeBase / eachBase;
+        }
+      }
+    }
+
+    // CASE C: 변환 불가 — 같은 단위면 그대로, 아니면 차감 못함 표시
+    if(deductInInvUnit===null){
+      if(ing.unit === invUnit){
+        deductInInvUnit = amt;
+      } else {
+        // 차감 불가 — invItem은 매칭되지만 단위 변환 안됨
+        return {name:ing.name,deductGrams:0,unit:ing.unit,invItem:matchedItem,conv:matchedConv,unitMismatch:true};
+      }
+    }
+
+    return {name:ing.name,deductGrams:deductInInvUnit,unit:ing.unit,invItem:matchedItem,conv:matchedConv};
   }).filter(d=>d!==null);
 }
 
-// Convert amount in any unit to grams (weight) or ml (volume)
+// 단위가 무게인지 부피인지 카운트인지 반환
+function unitKind(unit){
+  const wt=['g','Kg','lb','oz'];
+  const vol=['ml','l','cup','tbsp','tsp','gal','Gal'];
+  if(wt.includes(unit)) return 'weight';
+  if(vol.includes(unit)) return 'volume';
+  return null;
+}
+
+// 같은 종류 (둘 다 무게 OR 둘 다 부피) 안에서 단위 변환
+function convertSameKind(amount, fromUnit, toUnit){
+  const weightMap={g:1,Kg:1000,lb:453.592,oz:28.3495};
+  const volMap={ml:1,l:1000,cup:240,tbsp:15,tsp:5,gal:3785.41,Gal:3785.41};
+  if(weightMap[fromUnit]!==undefined && weightMap[toUnit]!==undefined){
+    return amount * weightMap[fromUnit] / weightMap[toUnit];
+  }
+  if(volMap[fromUnit]!==undefined && volMap[toUnit]!==undefined){
+    return amount * volMap[fromUnit] / volMap[toUnit];
+  }
+  return null;
+}
+
+// Convert amount in any unit to grams (weight) or ml (volume) — base unit
 function convertToBaseUnit(amount, unit){
   const weightMap={g:1,Kg:1000,lb:453.592,oz:28.3495};
-  const volMap={ml:1,l:1000,cup:240,tbsp:15,tsp:5,Gal:3785.41};
+  const volMap={ml:1,l:1000,cup:240,tbsp:15,tsp:5,gal:3785.41,Gal:3785.41};
   if(weightMap[unit]!==undefined) return amount*weightMap[unit]; // → grams
   if(volMap[unit]!==undefined) return amount*volMap[unit]; // → ml
   return null;
 }
 
-// Convert from recipe unit to inventory base unit
+// (구버전 호환용 - 다른 곳에서 호출되면 그대로 동작)
 function convertToSameUnit(amount, fromUnit, toUnit){
-  const weightMap={g:1,Kg:1000,lb:453.592,oz:28.3495};
-  const volMap={ml:1,l:1000,cup:240,tbsp:15,tsp:5,Gal:3785.41};
-  // Both weight
-  if(weightMap[fromUnit]!==undefined && weightMap[toUnit]!==undefined){
-    return amount * weightMap[fromUnit] / weightMap[toUnit];
-  }
-  // Both volume
-  if(volMap[fromUnit]!==undefined && volMap[toUnit]!==undefined){
-    return amount * volMap[fromUnit] / volMap[toUnit];
-  }
-  // Gal special
+  const direct = convertSameKind(amount, fromUnit, toUnit);
+  if(direct!==null) return direct;
   if(fromUnit==='Gal'&&toUnit==='ml') return amount*3785.41;
   if(fromUnit==='ml'&&toUnit==='Gal') return amount/3785.41;
   return null;
