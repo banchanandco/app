@@ -726,10 +726,12 @@ function renderStock(){
       const row=document.createElement('div');row.className='item-row';
       const remaining=(item.remaining!==undefined&&item.remaining!==null)?item.remaining:item.qty;
       const conv2=conversions[sec.id]&&conversions[sec.id][item.name];
-      let qtyDisplay=`${remaining} ${item.unit}`;
-      if(conv2&&conv2.ratio&&remaining!==null){
-        const secUnits=(remaining/conv2.ratio).toFixed(1);
-        qtyDisplay=`${secUnits} ${conv2.outUnit}`;
+      // 메인: 저장된 그대로 (이미 변환 단위). 괄호: 입고 단위로 역산
+      const qtyDisplay=`${remaining} ${item.unit}`;
+      let parenDisplay='';
+      if(conv2&&conv2.ratio&&conv2.inUnit){
+        const inUnits=(remaining/conv2.ratio).toFixed(1);
+        parenDisplay=`(${inUnits} ${conv2.inUnit})`;
       }
       row.innerHTML=`
         <button class="star-btn active" title="즐겨찾기">★</button>
@@ -743,6 +745,7 @@ function renderStock(){
         </div>
         <div style="text-align:right;flex-shrink:0">
           <div class="item-qty">${qtyDisplay}</div>
+          ${parenDisplay?`<div style="font-size:0.65rem;color:var(--muted);margin-top:1px">${parenDisplay}</div>`:''}
         </div>
       `;
       row.querySelector('.star-btn').addEventListener('click',(e)=>{
@@ -779,14 +782,15 @@ function renderStock(){
     items.forEach(item=>{
       const row=document.createElement('div');row.className='item-row';
       const inInfo=item.inboundQty?`입고: ${item.inboundQty}${item.inboundUnit}`:'';
-      // Get conversion info for food section to show in secondary unit
+      // 메인: 저장된 그대로 (이미 변환 단위). 괄호: 입고 단위로 역산
       const remaining=(item.remaining!==undefined&&item.remaining!==null)?item.remaining:item.qty;
       const conv2=conversions[sec.id]&&conversions[sec.id][item.name];
-      let qtyDisplay=`${remaining} ${item.unit}`;
+      const qtyDisplay=`${remaining} ${item.unit}`;
+      let parenDisplay='';
       let eachInfo='';
-      if(conv2&&conv2.ratio&&remaining!==null){
-        const secUnits=(remaining/conv2.ratio).toFixed(1);
-        qtyDisplay=`${secUnits} ${conv2.outUnit}`;
+      if(conv2&&conv2.ratio&&conv2.inUnit){
+        const inUnits=(remaining/conv2.ratio).toFixed(1);
+        parenDisplay=`(${inUnits} ${conv2.inUnit})`;
         if(conv2.eachVol&&conv2.eachUnit) eachInfo=`${conv2.eachVol}${conv2.eachUnit} each`;
       }
       const isFavorite = isFav(sec.id, item.name);
@@ -803,7 +807,7 @@ function renderStock(){
         </div>
         <div style="text-align:right;flex-shrink:0">
           <div class="item-qty">${qtyDisplay}</div>
-          ${conv2&&conv2.ratio?`<div style="font-size:0.65rem;color:var(--muted);margin-top:1px">(${remaining} ${item.unit})</div>`:''}
+          ${parenDisplay?`<div style="font-size:0.65rem;color:var(--muted);margin-top:1px">${parenDisplay}</div>`:''}
         </div>
         <button class="stock-edit">✏️</button>
         <button class="del-btn">✕</button>
