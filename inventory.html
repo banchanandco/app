@@ -441,7 +441,9 @@ async function initFirestore(){
     if(convSnap.exists()) conversions[sec.id]=convSnap.data()||{};
 
     // inventory listener
-    const q=query(collection(db,`inv_${sec.id}`),orderBy('createdAt','desc'));
+    // NOTE: orderBy('createdAt')를 사용하면 createdAt 필드가 없는 문서가 결과에서 누락됨
+    // (예전 데이터, 수동 추가 등) → 재고 탭에 안 보이는 버그 원인. 클라이언트에서 정렬함.
+    const q=collection(db,`inv_${sec.id}`);
     const unsub=onSnapshot(q,snap=>{
       cache[sec.id]=snap.docs.map(d=>({id:d.id,...d.data()}));
       renderAll();
@@ -619,14 +621,17 @@ function renderInbound(){
         if(existing){
           const newQty = (existing.qty||0) + stockQty;
           const newRemaining = (existing.remaining!==undefined&&existing.remaining!==null?existing.remaining:existing.qty) + stockQty;
-          await updateDoc(doc(db,`inv_${sec.id}`,existing.id),{
+          const updateData = {
             qty: newQty,
             remaining: newRemaining,
             inboundQty: inboundQty,
             inboundUnit: inboundUnit,
             updatedAt: Date.now(),
             addedBy: currentUser?.displayName||currentUser?.email||'',
-          });
+          };
+          // 예전 데이터에 createdAt이 없으면 보충 (정렬/필터 누락 방지)
+          if(!existing.createdAt) updateData.createdAt = Date.now();
+          await updateDoc(doc(db,`inv_${sec.id}`,existing.id),updateData);
         } else {
           await addDoc(collection(db,`inv_${sec.id}`),{
             name,qty:stockQty,unit:stockUnit,remaining:stockQty,
