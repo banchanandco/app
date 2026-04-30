@@ -446,8 +446,12 @@ async function initFirestore(){
     const q=collection(db,`inv_${sec.id}`);
     const unsub=onSnapshot(q,snap=>{
       cache[sec.id]=snap.docs.map(d=>({id:d.id,...d.data()}));
+      console.log('[snapshot]', sec.id, '문서수:', cache[sec.id].length, cache[sec.id]);
       renderAll();
-    },err=>showToast('오류:'+err.code));
+    },err=>{
+      console.error('[snapshot 오류]', sec.id, err);
+      showToast('읽기 오류: '+err.code);
+    });
     unsubscribers.push(unsub);
   }
   renderInbound();
@@ -604,6 +608,8 @@ function renderInbound(){
       const entries=Object.entries(selected[sec.id]);
       if(!entries.length){showToast('품목을 선택하세요');return;}
       let saved=0;
+      let lastError=null;
+      console.log('[입고] 시작 - section:', sec.id, '품목수:', entries.length);
       for(const [name,val] of entries){
         const conv=getConv(name);
         const rawQty=parseFloat(val.qty);
@@ -618,29 +624,43 @@ function renderInbound(){
         }
         // 같은 이름+단위 품목이 있으면 수량 합산, 없으면 새로 생성
         const existing = cache[sec.id].find(i=>i.name===name && i.unit===stockUnit);
-        if(existing){
-          const newQty = (existing.qty||0) + stockQty;
-          const newRemaining = (existing.remaining!==undefined&&existing.remaining!==null?existing.remaining:existing.qty) + stockQty;
-          const updateData = {
-            qty: newQty,
-            remaining: newRemaining,
-            inboundQty: inboundQty,
-            inboundUnit: inboundUnit,
-            updatedAt: Date.now(),
-            addedBy: currentUser?.displayName||currentUser?.email||'',
-          };
-          // 예전 데이터에 createdAt이 없으면 보충 (정렬/필터 누락 방지)
-          if(!existing.createdAt) updateData.createdAt = Date.now();
-          await updateDoc(doc(db,`inv_${sec.id}`,existing.id),updateData);
-        } else {
-          await addDoc(collection(db,`inv_${sec.id}`),{
-            name,qty:stockQty,unit:stockUnit,remaining:stockQty,
-            inboundQty,inboundUnit,
-            createdAt:Date.now(),
-            addedBy:currentUser?.displayName||currentUser?.email||'',
-          });
+        try {
+          if(existing){
+            const newQty = (existing.qty||0) + stockQty;
+            const newRemaining = (existing.remaining!==undefined&&existing.remaining!==null?existing.remaining:existing.qty) + stockQty;
+            const updateData = {
+              qty: newQty,
+              remaining: newRemaining,
+              inboundQty: inboundQty,
+              inboundUnit: inboundUnit,
+              updatedAt: Date.now(),
+              addedBy: currentUser?.displayName||currentUser?.email||'',
+            };
+            // 예전 데이터에 createdAt이 없으면 보충 (정렬/필터 누락 방지)
+            if(!existing.createdAt) updateData.createdAt = Date.now();
+            console.log('[입고] UPDATE', name, 'docId:', existing.id, updateData);
+            await updateDoc(doc(db,`inv_${sec.id}`,existing.id),updateData);
+            console.log('[입고] UPDATE 성공', name);
+          } else {
+            const newDoc = {
+              name,qty:stockQty,unit:stockUnit,remaining:stockQty,
+              inboundQty,inboundUnit,
+              createdAt:Date.now(),
+              addedBy:currentUser?.displayName||currentUser?.email||'',
+            };
+            console.log('[입고] ADD', name, newDoc);
+            const ref = await addDoc(collection(db,`inv_${sec.id}`),newDoc);
+            console.log('[입고] ADD 성공', name, '새 docId:', ref.id);
+          }
+          saved++;
+        } catch(e) {
+          lastError=e;
+          console.error('[입고] 실패', name, e.code, e.message, e);
         }
-        saved++;
+      }
+      if(lastError){
+        showToast('저장 실패: '+(lastError.code||lastError.message||'알 수 없음'));
+        return;
       }
       if(!saved){showToast('수량을 입력하세요');return;}
       selected[sec.id]={};renderPickerItems();renderSelInputs();
