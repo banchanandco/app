@@ -326,7 +326,7 @@
     <input class="sheet-input" id="conv-each-vol" type="number" min="0" step="any" style="width:80px;flex:none" placeholder="예: 1"/>
     <select class="sheet-sel" id="conv-each-unit">
       <option value="">없음</option>
-      <option value="Gal">Gal</option>
+      <option value="gal">gal</option>
       <option value="l">l</option>
       <option value="ml">ml</option>
       <option value="lb">lb</option>
@@ -338,6 +338,7 @@
   </div>
   <div style="font-size:0.72rem;color:var(--muted);padding:0 4px 8px;line-height:1.5" id="conv-example-label"></div>
   <button class="sheet-save" id="conv-save">저장하기</button>
+  <button id="conv-reset" style="display:none;width:100%;margin-top:8px;padding:12px;border:1px solid var(--border);border-radius:10px;background:transparent;font-family:'Noto Sans KR',sans-serif;font-size:0.85rem;color:#c0392b;cursor:pointer">변환 설정 리셋</button>
 </div>
 
 <!-- MANAGE ITEMS SHEET -->
@@ -436,38 +437,41 @@ onAuthStateChanged(auth, user=>{
 // conv: 변환 정보 객체 또는 null
 // cost.html이 인식하는 단위
 const COST_UNITS=['cup','tbsp','tsp','Kg','g','l','ml','lb','oz','개'];
+// cost.html이 모르는 단위 → 인식 가능 단위로 변환하는 표 (배수)
+// 예: gal은 cost.html에 없으니 ml로 풀어줌
+const COST_UNIT_NORMALIZE={
+  gal: {to:'ml', factor:3785.41},
+  Gal: {to:'ml', factor:3785.41},
+};
+// 임의 단위/수량을 cost.html이 인식하는 (amount, unit) 쌍으로 정규화
+function normalizeForCost(amount, unit){
+  if(COST_UNITS.includes(unit)) return {amount, unit};
+  const norm=COST_UNIT_NORMALIZE[unit];
+  if(norm) return {amount: amount*norm.factor, unit: norm.to};
+  return null; // 인식 불가
+}
 async function syncToCost(name, rawQty, rawPrice, priceUnit, conv){
   if(!rawPrice||rawPrice<=0||!rawQty||rawQty<=0)return;
-  // priceUnit 기준 1단위당 가격 계산
-  // 예) 1 box에 $50이면 → boxPerPrice = 1, totalPrice = 50
-  // cost.html에 저장할 amount/unit/price 계산
   let amount, unit, price;
-  // priceUnit이 변환의 inUnit (예: box)인 경우
+  // priceUnit이 변환의 inUnit (예: box)인 경우 → 1 box 분량을 cost 단위로 풀어줌
   if(conv && conv.inUnit && priceUnit===conv.inUnit){
-    // 1 box = ratio 개, 1 개 = eachVol eachUnit
-    if(conv.eachVol && conv.eachUnit && COST_UNITS.includes(conv.eachUnit)){
-      // 부피/무게 단위로 풀기
-      amount = conv.ratio * conv.eachVol;
-      unit = conv.eachUnit;
-    } else if(COST_UNITS.includes(conv.outUnit||'')){
-      // outUnit이 인식 가능하면 그걸로 (보통 '개')
-      amount = conv.ratio;
-      unit = conv.outUnit;
-    } else {
-      // 둘 다 안 되면 '개'로 폴백
-      amount = conv.ratio;
-      unit = '개';
+    // 우선순위: each 정보가 있으면 부피/무게로 풀기 (gal 같은 단위는 ml로 정규화)
+    if(conv.eachVol && conv.eachUnit){
+      const norm=normalizeForCost(conv.ratio*conv.eachVol, conv.eachUnit);
+      if(norm){ amount=norm.amount; unit=norm.unit; }
+    }
+    // each 없거나 정규화 실패 → outUnit 시도
+    if(!unit){
+      const norm=normalizeForCost(conv.ratio, conv.outUnit||'개');
+      if(norm){ amount=norm.amount; unit=norm.unit; }
+      else { amount=conv.ratio; unit='개'; } // 최종 폴백
     }
     price = parseFloat(rawPrice); // 1 box 가격
   } else {
-    // priceUnit이 '개' 또는 변환 없음
-    if(priceUnit==='개' || !COST_UNITS.includes(priceUnit)){
-      amount = 1;
-      unit = '개';
-    } else {
-      amount = 1;
-      unit = priceUnit;
-    }
+    // priceUnit이 '개' 또는 변환 없음 → 1단위 = 입력 단위
+    const norm=normalizeForCost(1, priceUnit);
+    if(norm){ amount=norm.amount; unit=norm.unit; }
+    else { amount=1; unit='개'; }
     price = parseFloat(rawPrice);
   }
   if(!amount||!unit||!price)return;
@@ -1064,6 +1068,8 @@ function openConvSheet(secId,itemName,cb){
   document.getElementById('conv-ratio').value=(existing&&existing.ratio)||'';
   document.getElementById('conv-each-vol').value=(existing&&existing.eachVol)||'';
   document.getElementById('conv-each-unit').value=(existing&&existing.eachUnit)||'';
+  // 리셋 버튼은 기존 변환이 있을 때만 표시
+  document.getElementById('conv-reset').style.display=existing?'block':'none';
   updateConvLabel();
   document.getElementById('conv-overlay').classList.add('open');
   document.getElementById('conv-sheet').classList.add('open');
@@ -1103,6 +1109,26 @@ document.getElementById('conv-save').addEventListener('click',async()=>{
   existing[convItem]={inUnit,outUnit,ratio,eachVol,eachUnit};
   await setDoc(convRef,existing);
   showToast('변환 설정 저장됨 ✓');
+  closeConv();
+  if(convCallback)convCallback();
+  renderInbound();
+});
+
+// 변환 설정 리셋
+document.getElementById('conv-reset').addEventListener('click',async()=>{
+  if(!convSecId||!convItem)return;
+  if(!confirm(`"${convItem}"의 변환 설정을 정말 삭제할까요?`))return;
+  // 메모리에서 삭제
+  if(conversions[convSecId]) delete conversions[convSecId][convItem];
+  // Firestore에서 삭제
+  const convRef=doc(db,'item_conversions',convSecId);
+  const snap=await getDoc(convRef);
+  if(snap.exists()){
+    const data=snap.data();
+    delete data[convItem];
+    await setDoc(convRef,data);
+  }
+  showToast('변환 설정 삭제됨 ✓');
   closeConv();
   if(convCallback)convCallback();
   renderInbound();
