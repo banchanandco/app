@@ -396,6 +396,27 @@ let convItem=null, convSecId=null, convCallback=null;
 
 SECTIONS.forEach(s=>{cache[s.id]=[];itemLists[s.id]=[];conversions[s.id]={};selected[s.id]={};});
 
+// ── Favorites (localStorage 기반) ──────────────────────
+const FAV_KEY='hanmaru_favorites_v1';
+function loadFavs(){
+  try{return JSON.parse(localStorage.getItem(FAV_KEY))||{};}
+  catch(e){return {};}
+}
+function saveFavs(f){
+  try{localStorage.setItem(FAV_KEY,JSON.stringify(f));}catch(e){}
+}
+function isFav(secId,name){
+  const f=loadFavs();
+  return !!(f[secId]&&f[secId][name]);
+}
+function toggleFav(secId,name){
+  const f=loadFavs();
+  if(!f[secId])f[secId]={};
+  if(f[secId][name])delete f[secId][name];
+  else f[secId][name]=true;
+  saveFavs(f);
+}
+
 // ── Auth ──────────────────────────────────────────────
 onAuthStateChanged(auth, user=>{
   if(!user){location.href='index.html';return;}
