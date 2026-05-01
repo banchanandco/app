@@ -353,6 +353,22 @@
   </div>
 </div>
 
+<!-- SECTION MANAGE SHEET -->
+<div class="sheet-overlay" id="sec-mgr-overlay"></div>
+<div class="sheet" id="sec-mgr-sheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-title">분류 관리</div>
+  <div class="manage-list" id="sec-mgr-list"></div>
+  <div style="border-top:1px solid var(--border);padding-top:12px;margin-top:8px">
+    <div style="font-size:0.78rem;color:var(--muted);margin-bottom:6px">새 분류 추가</div>
+    <div style="display:flex;gap:6px;align-items:center">
+      <input class="manage-input" id="sec-mgr-icon" placeholder="🥕" maxlength="4" style="width:60px;flex:none;text-align:center;font-size:1.1rem"/>
+      <input class="manage-input" id="sec-mgr-label" placeholder="분류명 (예: 음료)" maxlength="14" style="flex:1"/>
+      <button class="manage-add-btn" id="sec-mgr-add-btn">추가</button>
+    </div>
+  </div>
+</div>
+
 <div id="toast"></div>
 
 <script type="module">
@@ -372,7 +388,8 @@ const fbApp = initializeApp({
 const auth = getAuth(fbApp);
 const db   = getFirestore(fbApp);
 
-const SECTIONS = [
+// 분류는 Firestore에서 동적으로 로드 (app_config/sections). 없으면 아래 기본값 사용
+const DEFAULT_SECTIONS = [
   { id:'food',      label:'소스,양념',   icon:'🥩' },
   { id:'veggie',    label:'야채',     icon:'🥬' },
   { id:'meat',      label:'고기',     icon:'🍖' },
@@ -381,6 +398,7 @@ const SECTIONS = [
   { id:'clean',     label:'청소',     icon:'🧹' },
   { id:'other',     label:'기타',     icon:'📂' },
 ];
+let SECTIONS = DEFAULT_SECTIONS.slice();
 
 const DEFAULT_ITEMS = {
   food:['고추장','된장','간장','국간장','설탕','물엿','미림','소고기다시다','혼다시','조개다시다','멸치다시다','식초','까나리액젓','멸치액젓','참치액젓','새우젓','연두','미원','고춧가루','참기름','마늘','생강','깨','후추','꽃소금','표고버섯','다시마','국물용멸치','배주스'],
@@ -512,6 +530,23 @@ function fmtDate(ts){if(!ts)return'';const d=new Date(ts);return`${d.getMonth()+
 
 // ── Firestore init ────────────────────────────────────
 async function initFirestore(){
+  // 분류(섹션) 로드 — 없으면 기본값으로 초기화 후 저장
+  const secRef = doc(db,'app_config','sections');
+  const secSnap = await getDoc(secRef);
+  if(secSnap.exists() && Array.isArray(secSnap.data().items) && secSnap.data().items.length){
+    SECTIONS = secSnap.data().items;
+  } else {
+    SECTIONS = DEFAULT_SECTIONS.slice();
+    await setDoc(secRef,{items:SECTIONS});
+  }
+  // 새 분류가 있으면 cache 등 자료구조 초기화
+  SECTIONS.forEach(s=>{
+    if(!cache[s.id]) cache[s.id]=[];
+    if(!itemLists[s.id]) itemLists[s.id]=[];
+    if(!conversions[s.id]) conversions[s.id]={};
+    if(!selected[s.id]) selected[s.id]={};
+  });
+
   for(const sec of SECTIONS){
     // item lists
     const listRef=doc(db,'item_lists',sec.id);
@@ -547,6 +582,17 @@ function renderAll(){renderStock();renderOutbound();renderOrderUrgent();}
 function renderInbound(){
   const view=document.getElementById('tab-inbound');
   view.innerHTML='';
+
+  // 분류 관리 버튼
+  const mgrBar=document.createElement('div');
+  mgrBar.style.cssText='display:flex;justify-content:flex-end;padding:0 4px 8px';
+  const mgrBtn=document.createElement('button');
+  mgrBtn.style.cssText='background:transparent;border:1px solid var(--border);border-radius:8px;padding:6px 12px;font-family:inherit;font-size:0.78rem;color:var(--muted);cursor:pointer';
+  mgrBtn.textContent='⚙ 분류 관리';
+  mgrBtn.addEventListener('click',openSecMgr);
+  mgrBar.appendChild(mgrBtn);
+  view.appendChild(mgrBar);
+
   SECTIONS.forEach(sec=>{
     const card=document.createElement('div');
     card.className='section-card';
@@ -1076,6 +1122,135 @@ function openConvSheet(secId,itemName,cb){
 }
 function closeConv(){document.getElementById('conv-overlay').classList.remove('open');document.getElementById('conv-sheet').classList.remove('open');}
 document.getElementById('conv-overlay').addEventListener('click',closeConv);
+
+// ── 분류 관리 ─────────────────────────────────────────
+function openSecMgr(){
+  renderSecMgrList();
+  document.getElementById('sec-mgr-overlay').classList.add('open');
+  document.getElementById('sec-mgr-sheet').classList.add('open');
+}
+function closeSecMgr(){
+  document.getElementById('sec-mgr-overlay').classList.remove('open');
+  document.getElementById('sec-mgr-sheet').classList.remove('open');
+}
+document.getElementById('sec-mgr-overlay').addEventListener('click',closeSecMgr);
+
+function renderSecMgrList(){
+  const list=document.getElementById('sec-mgr-list');
+  list.innerHTML='';
+  SECTIONS.forEach((sec,idx)=>{
+    const itemCount=(cache[sec.id]||[]).length;
+    const row=document.createElement('div');
+    row.className='manage-row';
+    row.style.cssText='display:flex;align-items:center;gap:6px;padding:8px 4px;border-bottom:1px solid var(--border)';
+    row.innerHTML=`
+      <input type="text" class="manage-input" data-field="icon" data-id="${sec.id}" value="${sec.icon}" maxlength="4" style="width:50px;flex:none;text-align:center;font-size:1.1rem"/>
+      <input type="text" class="manage-input" data-field="label" data-id="${sec.id}" value="${sec.label}" maxlength="14" style="flex:1"/>
+      <span style="font-size:0.7rem;color:var(--muted);min-width:46px;text-align:center">${itemCount}개</span>
+      <button class="sec-mgr-up" data-id="${sec.id}" ${idx===0?'disabled':''} style="background:transparent;border:none;color:var(--muted);font-size:1rem;cursor:pointer;padding:4px 6px;${idx===0?'opacity:.3':''}">▲</button>
+      <button class="sec-mgr-down" data-id="${sec.id}" ${idx===SECTIONS.length-1?'disabled':''} style="background:transparent;border:none;color:var(--muted);font-size:1rem;cursor:pointer;padding:4px 6px;${idx===SECTIONS.length-1?'opacity:.3':''}">▼</button>
+      <button class="sec-mgr-del" data-id="${sec.id}" style="background:transparent;border:none;color:#c0392b;font-size:1.1rem;cursor:pointer;padding:4px 8px">✕</button>
+    `;
+    list.appendChild(row);
+  });
+  // 이름/아이콘 수정
+  list.querySelectorAll('input[data-field]').forEach(inp=>{
+    inp.addEventListener('change',async(e)=>{
+      const id=e.target.dataset.id, field=e.target.dataset.field;
+      const newVal=e.target.value.trim();
+      if(!newVal){
+        showToast('값을 입력하세요');
+        e.target.value = SECTIONS.find(s=>s.id===id)[field];
+        return;
+      }
+      const sec=SECTIONS.find(s=>s.id===id);
+      if(sec){
+        sec[field]=newVal;
+        await saveSections();
+        renderInbound();renderAll();
+        showToast('수정됨 ✓');
+      }
+    });
+  });
+  // 순서 변경
+  list.querySelectorAll('.sec-mgr-up').forEach(b=>{
+    b.addEventListener('click',async()=>{
+      const id=b.dataset.id;
+      const i=SECTIONS.findIndex(s=>s.id===id);
+      if(i>0){
+        [SECTIONS[i-1],SECTIONS[i]]=[SECTIONS[i],SECTIONS[i-1]];
+        await saveSections();
+        renderSecMgrList();renderInbound();renderAll();
+      }
+    });
+  });
+  list.querySelectorAll('.sec-mgr-down').forEach(b=>{
+    b.addEventListener('click',async()=>{
+      const id=b.dataset.id;
+      const i=SECTIONS.findIndex(s=>s.id===id);
+      if(i<SECTIONS.length-1){
+        [SECTIONS[i+1],SECTIONS[i]]=[SECTIONS[i],SECTIONS[i+1]];
+        await saveSections();
+        renderSecMgrList();renderInbound();renderAll();
+      }
+    });
+  });
+  // 삭제
+  list.querySelectorAll('.sec-mgr-del').forEach(b=>{
+    b.addEventListener('click',async()=>{
+      const id=b.dataset.id;
+      const sec=SECTIONS.find(s=>s.id===id);
+      if(!sec) return;
+      const itemCount=(cache[id]||[]).length;
+      if(itemCount>0){
+        showToast(`재고가 ${itemCount}개 남아있어 삭제 불가. 먼저 비워주세요.`);
+        return;
+      }
+      if(!confirm(`"${sec.label}" 분류를 삭제할까요?`)) return;
+      // 메모리에서 제거
+      SECTIONS = SECTIONS.filter(s=>s.id!==id);
+      delete cache[id];delete itemLists[id];delete conversions[id];delete selected[id];
+      // Firestore 삭제 (item_lists, item_conversions 문서도 정리)
+      await saveSections();
+      try { await deleteDoc(doc(db,'item_lists',id)); } catch(e){}
+      try { await deleteDoc(doc(db,'item_conversions',id)); } catch(e){}
+      renderSecMgrList();renderInbound();renderAll();
+      showToast('분류 삭제됨 ✓');
+    });
+  });
+}
+
+// 새 분류 추가
+document.getElementById('sec-mgr-add-btn').addEventListener('click',async()=>{
+  const iconEl=document.getElementById('sec-mgr-icon');
+  const labelEl=document.getElementById('sec-mgr-label');
+  const icon=iconEl.value.trim() || '📂';
+  const label=labelEl.value.trim();
+  if(!label){showToast('분류명을 입력하세요');return;}
+  // 이름 중복 체크
+  if(SECTIONS.some(s=>s.label===label)){showToast('이미 같은 이름의 분류가 있어요');return;}
+  // 새 ID 생성 — 영문이면 그대로, 아니면 cust_xxx
+  const id='sec_'+Date.now().toString(36);
+  const newSec={id,label,icon};
+  SECTIONS.push(newSec);
+  cache[id]=[];itemLists[id]=[];conversions[id]={};selected[id]={};
+  await saveSections();
+  // 빈 item_lists 문서 생성 + listener 시작
+  await setDoc(doc(db,'item_lists',id),{items:[]});
+  const q=collection(db,`inv_${id}`);
+  const unsub=onSnapshot(q,snap=>{
+    cache[id]=snap.docs.map(d=>({id:d.id,...d.data()}));
+    renderAll();
+  },err=>console.error('[snapshot 오류]',id,err));
+  unsubscribers.push(unsub);
+  iconEl.value='';labelEl.value='';
+  renderSecMgrList();renderInbound();renderAll();
+  showToast('분류 추가됨 ✓');
+});
+
+async function saveSections(){
+  await setDoc(doc(db,'app_config','sections'),{items:SECTIONS});
+}
 
 function updateConvLabel(){
   const inU=document.getElementById('conv-in-unit').value;
