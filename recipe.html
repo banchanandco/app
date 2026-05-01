@@ -406,10 +406,12 @@ let selectedCat = '';     // category selected in modal
 let invCache = {}; // {secId: [items]}
 let invConversions = {}; // {secId: {itemName: {inUnit,outUnit,ratio,eachVol,eachUnit}}}
 
-const INV_SECTIONS = [
+// INV_SECTIONS는 Firestore (app_config/sections)에서 동적 로드
+// 사용자가 inventory에서 추가/수정/삭제한 분류가 자동 반영됨
+let INV_SECTIONS = [
   {id:'food'},{id:'veggie'},{id:'meat'},{id:'container'},{id:'misc'},{id:'clean'},{id:'other'}
 ];
-INV_SECTIONS.forEach(s=>{invCache[s.id]=[];});
+let invListeners = {}; // {secId: unsub fn}
 let currentIngredients = [];
 let editingId = null;
 let currentDetailId = null;
@@ -514,12 +516,21 @@ function initFirestore(){
     renderGrid(document.getElementById('search-box').value);
   });
   // Load inventory data + conversions for stock deduction
-  INV_SECTIONS.forEach(sec=>{
-    onSnapshot(query(collection(db,`inv_${sec.id}`),orderBy('name')), snap=>{
-      invCache[sec.id] = snap.docs.map(d=>({id:d.id,...d.data()}));
-    });
-    getDoc(doc(db,'item_conversions',sec.id)).then(snap=>{
-      if(snap.exists()) invConversions[sec.id] = snap.data()||{};
+  // 분류(SECTIONS) 동적 로드 — inventory에서 추가/삭제한 분류가 자동 반영
+  onSnapshot(doc(db,'app_config','sections'), snap=>{
+    if(snap.exists() && Array.isArray(snap.data().items) && snap.data().items.length){
+      INV_SECTIONS = snap.data().items;
+    }
+    INV_SECTIONS.forEach(sec=>{
+      if(!invCache[sec.id]) invCache[sec.id]=[];
+      // 같은 분류에 대해 listener 중복 등록 방지
+      if(invListeners[sec.id]) return;
+      invListeners[sec.id] = onSnapshot(query(collection(db,`inv_${sec.id}`),orderBy('name')), s2=>{
+        invCache[sec.id] = s2.docs.map(d=>({id:d.id,...d.data()}));
+      });
+      getDoc(doc(db,'item_conversions',sec.id)).then(s3=>{
+        if(s3.exists()) invConversions[sec.id] = s3.data()||{};
+      });
     });
   });
 }

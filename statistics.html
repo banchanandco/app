@@ -224,7 +224,7 @@ const app = initializeApp({apiKey:"AIzaSyArW3yhj81OJpOkCEYfyaelgcdo8o_IAPw",auth
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-const SECTIONS = [
+const DEFAULT_SECTIONS = [
   {id:'food',label:'소스,양념',icon:'🥩'},
   {id:'veggie',label:'야채',icon:'🥬'},
   {id:'meat',label:'고기',icon:'🍖'},
@@ -233,9 +233,10 @@ const SECTIONS = [
   {id:'clean',label:'청소',icon:'🧹'},
   {id:'other',label:'기타',icon:'📂'},
 ];
+let SECTIONS = DEFAULT_SECTIONS.slice();
 
 const cache = {};
-SECTIONS.forEach(s => cache[s.id] = []);
+let invListeners = {};
 let curSec = 'inbound';
 let curPeriod = 'day';
 
@@ -262,21 +263,21 @@ let started = false;
 function startListeners() {
   if (started) return;
   started = true;
-  const done = new Set();
-  SECTIONS.forEach(sec => {
-    onSnapshot(
-      query(collection(db, 'inv_'+sec.id), orderBy('createdAt')),
-      snap => {
-        cache[sec.id] = snap.docs.map(d=>({id:d.id,...d.data()}));
-        done.add(sec.id);
-        render();
-      },
-      err => {
-        console.warn(sec.id, err.code);
-        done.add(sec.id);
-        if (done.size >= SECTIONS.length) render();
-      }
-    );
+  // 분류(SECTIONS) 동적 로드 + 변경 감지
+  onSnapshot(doc(db,'app_config','sections'), snap=>{
+    if(snap.exists() && Array.isArray(snap.data().items) && snap.data().items.length){
+      SECTIONS = snap.data().items;
+    }
+    SECTIONS.forEach(sec => {
+      if(!cache[sec.id]) cache[sec.id] = [];
+      if(invListeners[sec.id]) return; // 중복 등록 방지
+      invListeners[sec.id] = onSnapshot(
+        query(collection(db, 'inv_'+sec.id), orderBy('createdAt')),
+        s2 => { cache[sec.id] = s2.docs.map(d=>({id:d.id,...d.data()})); render(); },
+        err => { console.warn(sec.id, err.code); render(); }
+      );
+    });
+    render();
   });
 }
 
